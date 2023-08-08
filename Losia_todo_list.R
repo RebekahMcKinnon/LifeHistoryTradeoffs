@@ -202,104 +202,54 @@ for (moderator in moderators) {
 }
 
 
-##### Calculate Hedges G 
+##### Calculate Hedges G -----
 # already have values for Cohen's D in the spreadsheet ('D')
 # but calculating Hedges G to use as it is better at dealing with small study sample size 
 
 
-# Create a new column 'G' in the 'data' data frame to store the Hedges' g values
-data$G <- NA
+effect_sizes <- escalc(m1i = data$Treatment_Mean, m2i = data$Control_Mean,# using escalc function to calculate hedges G
+                       sd1i = data$Treatment_SD, sd2i = data$Control_SD,
+                       n1i = data$Nnests_treat, n2i = data$Nnests_control,
+                       measure = "SMD")
 
-# run a loop to add the Hedges G value for each row instead of calculating one value for the whole dataset 
-for (i in 1:nrow(data)) {
-  mean_control <- data$Control_Mean[i]
-  mean_treatment <- data$Treatment_Mean[i]
-  sd_control <- data$Control_SD[i]
-  sd_treatment <- data$Treatment_SD[i]
-  n_control <- data$Nnests_control[i]
-  n_treatment <- data$Nnests_treat[i]
-  
-  effect_sizes <- escalc(m1 = mean_treatment, m2 = mean_control,# using escalc function to calculate hedges G
-                         sd1 = sd_treatment, sd2 = sd_control,
-                         n1 = n_treatment, n2 = n_control,
-                         measure = "SMD")
-  
-  meta_result <- rma(yi = effect_sizes$yi, vi = effect_sizes$vi)
-  
-  hedges_g <- meta_result$b
-  
-  # Store the Hedges' g value in the 'G' column for this row
-  data$G[i] <- hedges_g
-}
+# add new columns back into dataframe 
+data <- bind_cols(data, effect_sizes)
 
+##### Meta-analysis -----
+meta_result <- rma(yi = data$yi, vi = data$vi)
+meta_result
 
-##### Meta-analysis 
+data <- data %>%
+  mutate(EffectID = row_number())
 
-# Construct the variance-covariance matrix
-V <- diag(nrow(data))  # Initialize an empty matrix with the same number of rows as the data
+meta_result2 <- rma.mv(yi = yi, V=vi, random = list(~1 |RecNo, ~1 |EffectID), data = data)
+meta_result2
+# RecNo is an identifier for each STUDY i.e., their Endnote record number 
+# EffectID is just row numbers 
+# is this correct? 
 
-# Assign SE values to the diagonal elements for the control group
-V[data$Treatment == "control", data$Treatment == "control"] <- data$Control_SE[data$Treatment == "control"]^2
-
-# Assign SE values to the diagonal elements for the treatment group
-V[data$Treatment == "treatment", data$Treatment == "treatment"] <- data$Treatment_SE[data$Treatment == "treatment"]^2
-
-# Conduct multilevel meta-analysis with separate variances within each group
-subgroup_result <- rma.mv(yi = data$G, V = V, mods = ~ Treatment, random = ~ 1 | FocalSpC, data = data)
-
-# rma.mv is used to perform a random effect meta analysis 
-# when there are multiple effect size estimates within each study 
-# in my case im not doing by study but by species 
-# thus i believe this is the right one to use because there are multiple rows per species? 
-# but it may also be rma.uni which is used when there is a single effect size measure 
-# i.e., when there is only one effect size estimate per study 
-summary(subgroup_result)
-
-# Obtain the subgroup-specific Hedges' g estimates, standard errors
-subgroup_g <- subgroup_result$b
-subgroup_se <- subgroup_result$se
-
-# Print subgroup-specific estimates, standard errors
-cat("Subgroup-specific Hedges' g estimates:\n")
-print(subgroup_g)
-cat("Subgroup-specific Hedges' g standard errors:\n")
-print(subgroup_se)
-
-
-####
-
+meta_result3 <- rma.mv(yi = yi, V=vi, mods = ~Treatment, random = list(~1 |RecNo, ~1 |EffectID), data = data)
+meta_result3
 
 combined_data <- left_join(data, life_hist, by = c("FocalSpC"))
 
-
-# Construct the variance-covariance matrix
-V <- diag(nrow(combined_data))  # Initialize an empty matrix with the same number of rows as the data
-
-# Assign SE values to the diagonal elements for the control group
-V[combined_data$Treatment == "control", combined_data$Treatment == "control"] <- combined_data$Control_SE[combined_data$Treatment == "control"]^2
-
-# Assign SE values to the diagonal elements for the treatment group
-V[combined_data$Treatment == "treatment", combined_data$Treatment == "treatment"] <- combined_data$Treatment_SE[combined_data$Treatment == "treatment"]^2
-# Perform meta-analysis with mixed-effects and moderators
-subgroup_result2 <- rma.mv(yi = combined_data$G, V = V, mods = ~ Treatment + Max_lifespan, random = ~ 1 | FocalSpC, data = combined_data)
-
-summary(subgroup_result2)
-
+meta_result4 <- rma.mv(yi = yi, V=vi, mods = ~Treatment + Lifespan_ave, random = list(~1 |RecNo, ~1 |EffectID), data = combined_data)
+meta_result4
 
 #####
 # Calculate the mean G value for the enlarged group
-combined_data$enlarged_mean <- mean(combined_data$G[combined_data$Treatment == "enlarged"], na.rm = TRUE)
+combined_data$enlarged_mean <- mean(combined_data$yi[combined_data$Treatment == "enlarged"], na.rm = TRUE)
 
 # Calculate the mean G value for the reduced group
-combined_data$reduced_mean <- mean(combined_data$G[combined_data$Treatment == "reduced"], na.rm = TRUE)
+combined_data$reduced_mean <- mean(combined_data$yi[combined_data$Treatment == "reduced"], na.rm = TRUE)
 
 # Calculate the lower and upper CIs for the enlarged group
-combined_data$enlarged_lower_ci <- quantile(combined_data$G[combined_data$Treatment == "enlarged"], 0.025, na.rm = TRUE)
-combined_data$enlarged_upper_ci <- quantile(combined_data$G[combined_data$Treatment == "enlarged"], 0.975, na.rm = TRUE)
+combined_data$enlarged_lower_ci <- quantile(combined_data$yi[combined_data$Treatment == "enlarged"], 0.025, na.rm = TRUE)
+combined_data$enlarged_upper_ci <- quantile(combined_data$yi[combined_data$Treatment == "enlarged"], 0.975, na.rm = TRUE)
 
 # Calculate the lower and upper CIs for the reduced group
-combined_data$reduced_lower_ci <- quantile(combined_data$G[combined_data$Treatment == "reduced"], 0.025, na.rm = TRUE)
-combined_data$reduced_upper_ci <- quantile(combined_data$G[combined_data$Treatment == "reduced"], 0.975, na.rm = TRUE)
+combined_data$reduced_lower_ci <- quantile(combined_data$yi[combined_data$Treatment == "reduced"], 0.025, na.rm = TRUE)
+combined_data$reduced_upper_ci <- quantile(combined_data$yi[combined_data$Treatment == "reduced"], 0.975, na.rm = TRUE)
 
 ##### make figures for meta-analysis results
 
@@ -318,7 +268,7 @@ ggplot() +
 
 
 ggplot() +
-  geom_jitter(data = combined_data, aes(y = Max_lifespan, x = G, color = Treatment), width = 0.1, height = 0, size = 3, alpha = 0.5) +
+  geom_jitter(data = combined_data, aes(y = Lifespan_ave, x = yi, color = Treatment), width = 0.1, height = 0, size = 3, alpha = 0.5) +
   labs(x = "Effect Size (Hedges' g)", y = "Longevity", color = "Treatment") +
   scale_color_manual(values = c("reduced" = "cornflowerblue", "enlarged" = "tomato2")) +
   theme_minimal() +
@@ -326,7 +276,7 @@ ggplot() +
         axis.title.y = element_text(size=12, face="bold"))
 ###
 ggplot() +
-  geom_jitter(data = combined_data, aes(y = Max_lifespan, x = G, color = Treatment), width = 0.1, height = 0, size = 3, alpha = 0.5) +
+  geom_jitter(data = combined_data, aes(y = Lifespan_ave, x = yi, color = Treatment), width = 0.1, height = 0, size = 3, alpha = 0.5) +
   labs(x = "Effect Size (Hedges' g)", y = "Longevity", color = "Treatment") +
   scale_color_manual(values = c("reduced" = "cornflowerblue", "enlarged" = "tomato2")) +
   geom_vline(xintercept = -1.633603, linetype = "dashed", color = "cornflowerblue", size = 0.5) +
@@ -337,44 +287,32 @@ ggplot() +
   theme(axis.title.x = element_text(size = 12, face = "bold"),
         axis.title.y = element_text(size = 12, face = "bold"))
 
-###
 
+#####
 
 
 # Create box plots for each moderator
 boxplot_effect <- function(moderator) {
-  plot_data <- data.frame(G = data$G, Moderator = data[[moderator]])
+  plot_data <- data.frame(G = combined_data$yi, Moderator = combined_data[[moderator]])
   plot_title <- paste("Effect Size (G) by", moderator)
   
-  # Create the box plot using ggplot2
-  plot_obj <- ggplot(plot_data, aes(x = Moderator, y = G)) +
-    geom_boxplot() +
-    labs(title = plot_title, x = moderator, y = "Effect Size (G)") +
-    theme_bw()
+  # Create two separate panels for enlarged and reduced Treatment with color mapping
+  plot_obj <- ggplot(plot_data, aes(x = Moderator, y = G, fill = combined_data$Treatment)) +
+    geom_boxplot(varwidth=TRUE) +
+    scale_fill_manual(values = c("cornflowerblue", "tomato2")) +  # Define colors for each group
+    facet_wrap(~ combined_data$Treatment, scales = "fixed") +  # Use the same scale for both panels
+    labs(title = plot_title, x = NULL, y = "Effect Size (G)") +
+    theme_light() +
+    guides(fill = FALSE)  # Remove the legend
   
   print(plot_obj)
 }
 
 # List of moderators
-moderators <- c("FocalSpC", "Treatment", "Treatment_CONT", "Treatment_stage", "TreatDurCat", "RespCat")
+moderators <- c("FocalSpC", "Treatment_stage", "TreatDurCat", "RespCat")
 
 # Create and display box plots for each moderator
 for (moderator in moderators) {
   boxplot_effect(moderator)
 }
 
-#####
-
-# Define a small constant value
-small_value <- 0.001
-
-# Add the small constant value to SE values
-data$Control_SE_adjusted <- data$Control_SE + small_value
-data$Treatment_SE_adjusted <- data$Treatment_SE + small_value
-
-# Construct the variance-covariance matrix with adjusted SE values
-V <- diag(data$Control_SE_adjusted^2, nrow = nrow(data))
-
-# Conduct multilevel meta-analysis with adjusted SE values
-subgroup_result <- rma.mv(yi = data$G, V = V, mods = ~ Treatment, random = ~ 1 | FocalSpC, data = data)
-summary(subgroup_result)
