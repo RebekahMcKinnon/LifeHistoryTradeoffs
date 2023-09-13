@@ -220,7 +220,10 @@ meta_result <- rma(yi = data$yi, vi = data$vi)
 meta_result
 
 data <- data %>%
-  mutate(EffectID = row_number())
+  mutate(EffectID = as.factor(row_number()))
+
+data$RecNo <- as.factor(data$RecNo)
+
 
 meta_result2 <- rma.mv(yi = yi, V=vi, random = list(~1 |RecNo, ~1 |EffectID), data = data)
 meta_result2
@@ -233,8 +236,15 @@ meta_result3
 
 combined_data <- left_join(data, life_hist, by = c("FocalSpC"))
 
-meta_result4 <- rma.mv(yi = yi, V=vi, mods = ~Treatment + Lifespan_ave, random = list(~1 |RecNo, ~1 |EffectID), data = combined_data)
+meta_result4 <- rma.mv(yi = yi, V=vi, mods = ~Treatment + Treatment:Lifespan_ave, random = list(~1 |RecNo, ~1 |EffectID), data = combined_data)
 meta_result4
+
+meta_result5 <- rma.mv(yi = yi, V=vi, mods = ~Treatment + Treatment:Lifespan_ave, random = list(~1 |RecNo, ~1 |EffectID, ~1 |FocalSpC), data = combined_data)
+meta_result5
+
+names(data)
+
+(combined_data$Lifespan_ave)
 
 #####
 # Calculate the mean G value for the enlarged group
@@ -316,3 +326,173 @@ for (moderator in moderators) {
   boxplot_effect(moderator)
 }
 
+
+##### remaking figures with flipped ES
+# flip ES
+combined_data$G_flip <- combined_data$yi * combined_data$ES_flip
+combined_data$V_flip <- combined_data$vi * combined_data$ES_flip
+
+
+# Create box plots for each moderator but for flipped data 
+boxplot_effect <- function(moderator) {
+  plot_data <- data.frame(G = combined_data$G_flip, Moderator = combined_data[[moderator]])
+  plot_title <- paste("Effect Size (G) by", moderator)
+  
+  # Create two separate panels for enlarged and reduced Treatment with color mapping
+  plot_obj <- ggplot(plot_data, aes(x = Moderator, y = G, fill = combined_data$Treatment)) +
+    geom_boxplot(varwidth=TRUE) +
+    scale_fill_manual(values = c("cornflowerblue", "tomato2")) +  # Define colors for each group
+    facet_wrap(~ combined_data$Treatment, scales = "fixed") +  # Use the same scale for both panels
+    labs(title = plot_title, x = NULL, y = "Effect Size (G)") +
+    theme_light() +
+    guides(fill = FALSE)  # Remove the legend
+  
+  print(plot_obj)
+}
+
+# List of moderators
+moderators <- c("FocalSpC", "Treatment_stage", "TreatDurCat", "RespCat")
+
+# Create and display box plots for each moderator
+for (moderator in moderators) {
+  boxplot_effect(moderator)
+}
+
+
+
+##### Tree of Life -----
+
+# load packages needed here 
+library(tidyverse)
+library(ape, curl)
+library(rotl)
+library(readxl)
+
+names(combined_data)
+
+#get list of unique species (in latin) from FocalSpL column
+myspecies <- as.character(unique(combined_data$FocalSpL)) 
+
+length(myspecies) #27 species
+length(unique(myspecies)) #27
+
+# use rotl package to retreive synthetic species tree from open tree of life
+taxa <- tnrs_match_names(names = myspecies, context_name = "Birds")
+dim(taxa) #27 8 
+# ask losia what these numbers mean 
+
+table(taxa$approximate_match) #4 approximate matches
+
+taxa[taxa$approximate_match==TRUE, ]
+# unique name is name displayed on tree (tip.label)
+# need to correct 4 names in my original table 
+# 3 are capatilisation based 
+# 1 remaining is different species name; should be Petrochelidon ariel instead of hirundo ariel 
+
+names(combined_data)
+
+# get list of unique species from FocalSpL column 
+combined_data$FocalSpL_corrected <- combined_data$FocalSpL
+
+length(unique(combined_data$FocalSpL_corrected)) # 27 species 
+
+# fix species names to match the tree of life 
+combined_data$FocalSpL_corrected <- gsub("certhia familiaris", "Certhia familiaris", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("Certhia familiaris ", "Certhia familiaris", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("Hirundo ariel", "Petrochelidon ariel", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("Petrochelidon ariel ", "Petrochelidon ariel", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("strix aluco", "Strix aluco", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("Strix aluco ", "Strix aluco", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("phaethon rubricauda", "Phaethon rubricauda", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("Phaethon rubricauda ", "Phaethon rubricauda", combined_data$FocalSpL_corrected)
+
+
+print(unique(combined_data$FocalSpL_corrected))
+# get list of unique species from FocalSpL_corrected column 
+myspecies2 <- as.character(unique(combined_data$FocalSpL_corrected))
+length(myspecies2) # confirming still the same (27), it is 
+
+print(myspecies2)
+# rerun matching to tree of life 
+taxa2 <- tnrs_match_names(names = myspecies2, context_name = "Birds")
+dim(taxa2) # 27 8 still
+
+# check to make sure all approximate matches now corrected 
+table(taxa2$approximate_match)
+taxa[taxa2$approximate_match==TRUE, ] # 0 approximate matches - good 
+
+### get tree 
+tree <- tol_induced_subtree(ott_ids = taxa[["ott_id"]], label_format = "name")  
+plot(tree, cex=.6, label.offset =.1, no.margin = TRUE)
+
+tree$tip.label <- gsub(" \\(.*", "", tree$tip.label) #remove comments
+tree$tip.label <- gsub("_"," ", tree$tip.label) #get rid of the underscores
+length(tree$tip.label) #26 i.e., 1 missing 
+
+# check which one is missing 
+print(myspecies2)
+# parus montanus is missing, assuming it should be with Parus major 
+
+# check if species names are matching 
+#check overlap and differences with taxa list
+intersect(unique(combined_data$FocalSpL_corrected), tree$tip.label) # 22 overlap
+setdiff(unique(combined_data$FocalSpL_corrected), tree$tip.label) # 5 in data, not in tree 
+setdiff(tree$tip.label, unique(combined_data$FocalSpL_corrected)) # 4 in tree, not in data
+
+# parus montanus in my dataset is poecile montanus in the tree (tip.label) 
+# so replace this in the corrected column 
+
+combined_data$FocalSpL_corrected <- gsub("Parus montanus", "Poecile montanus", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("Catharacta skua", "Stercorarius skua", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("Parus palustris", "Poecile palustris", combined_data$FocalSpL_corrected)
+combined_data$FocalSpL_corrected <- gsub("Tarsiger cyanurus", "Luscinia cyanura", combined_data$FocalSpL_corrected)
+
+# theres still one thats present in the data but not in the tree...
+# not sure how to fix this as theres no tree name to change it to 
+# trying a synonym for it?
+combined_data$FocalSpL_corrected <- gsub("Parus caeruleus", "Cyanistes caeruleus", combined_data$FocalSpL_corrected)
+# both are blue tits 
+# so this reduces the number needed to match to 26
+# confirmed both are blue tits in the original dataframe 
+
+print(unique(combined_data$FocalSpL))
+
+# redo tree again 
+myspecies3 <- as.character(unique(combined_data$FocalSpL_corrected)) #get list of unique species from FocalSpL_corrected column
+taxa3 <- tnrs_match_names(names = myspecies3, context_name = "Birds")
+dim(taxa3)
+table(taxa3$approximate_match)
+
+tree2 <- tol_induced_subtree(ott_ids = taxa3[["ott_id"]], label_format = "name")  
+plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
+
+tree2$tip.label <- gsub(" \\(.*", "", tree2$tip.label) #remove comments
+tree2$tip.label <- gsub("_"," ", tree2$tip.label) #get rid of the underscores
+length(tree2$tip.label) #26
+
+#check overlap and differences with taxa list
+intersect(unique(combined_data$FocalSpL_corrected), tree2$tip.label) # all 26 overlap
+setdiff(unique(combined_data$FocalSpL_corrected), tree2$tip.label) # 0 in data, not in tree 
+setdiff(tree2$tip.label, unique(combined_data$FocalSpL_corrected)) # 0 in tree, not in data
+# everything seems good 
+
+#check if the tree is really binary 
+is.binary(tree) #TRUE
+# also good 
+
+# plot final tree
+plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
+
+##### experimental -----
+# no branch lengths are included in tree from Losia code, 
+# need to be created later via simulations
+# trying to do this with ChatGPT below 
+
+# Simulate branch lengths based on a molecular clock model
+tree_with_branch_lengths <- compute.brlen(tree2, method = "molecular_clock", rate = 1) # ask losia what the (clock) rate should be set to? 
+
+# Plot the tree with branch lengths
+plot(tree_with_branch_lengths, cex = 0.6, label.offset = 0.1, no.margin = TRUE)
+
+# Check the tree with branch lengths
+summary(tree_with_branch_lengths)
