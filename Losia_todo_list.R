@@ -360,6 +360,42 @@ for (moderator in moderators) {
 
 
 
+##### checking outlier stuff -----
+# Calculate Control_SE as a percentage of Control_Mean
+combined_data$Control_Percentage_SE <- (combined_data$Control_SE / combined_data$Control_Mean) * 100
+
+# Flag rows where the percentage is an order of magnitude more or less than 10%
+combined_data$Flag_Anomalous <- ifelse(
+  combined_data$Control_Percentage_SE < 1 | combined_data$Control_Percentage_SE > 1000, 
+  "Anomalous", 
+  "Not Anomalous"
+)
+
+# Print the first few rows to check the results
+head(combined_data)
+
+# Print rows where Control_Percentage_SE is Anomalous
+anomalous_rows <- combined_data[combined_data$Flag_Anomalous == "Anomalous", ]
+
+# Print the anomalous rows
+print(anomalous_rows)
+
+# Find row numbers of flagged rows
+anomalous_row_numbers <- which(combined_data$Flag_Anomalous == "Anomalous")
+
+# Print row numbers
+cat("Row numbers of flagged 'Anomalous' rows: ", paste(anomalous_row_numbers, collapse = ", "), "\n")
+
+# Calculate the percentage of Treatment_SE relative to Treatment_Mean
+combined_data$Treatment_Percentage_SE <- (combined_data$Treatment_SE / combined_data$Treatment_Mean) * 100
+
+# Find row numbers of flagged rows
+anomalous_treatment_row_numbers <- which(combined_data$Treatment_Percentage_SE < 1 | combined_data$Treatment_Percentage_SE > 1000)
+
+# Print row numbers
+cat("Row numbers of flagged 'Anomalous' Treatment rows: ", paste(anomalous_treatment_row_numbers, collapse = ", "), "\n")
+
+
 ##### Tree of Life -----
 
 # load packages needed here 
@@ -483,10 +519,9 @@ is.binary(tree) #TRUE
 # plot final tree
 plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
 
-##### experimental -----
 # no branch lengths are included in tree from Losia code, 
 # need to be created later via simulations
-# trying to do this with ChatGPT below 
+# trying to do this below...
 
 # Simulate branch lengths based on a molecular clock model
 tree_with_branch_lengths <- compute.brlen(tree2, method = "molecular_clock", rate = 1) # ask losia what the (clock) rate should be set to? 
@@ -496,3 +531,26 @@ plot(tree_with_branch_lengths, cex = 0.6, label.offset = 0.1, no.margin = TRUE)
 
 # Check the tree with branch lengths
 summary(tree_with_branch_lengths)
+
+### now attempting to incorporate this info into a meta-analysis 
+# not sure if this is correct 
+# check with Losia during meeting
+
+# Extract branch lengths from the tree_with_branch_lengths
+branch_lengths <- tree_with_branch_lengths$edge.length
+
+# Create a named vector with species names as names and branch lengths as values
+branch_lengths_named <- setNames(branch_lengths, tree_with_branch_lengths$tip.label)
+
+# Match branch lengths to species in combined_data based on species names
+combined_data$BranchLength <- branch_lengths_named[combined_data$FocalSpL_corrected]
+
+# Fit a meta-analysis model with BranchLength as a moderator
+meta_result_with_phylo <- rma.mv(yi = yi, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave + BranchLength,
+                                 random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected),
+                                 data = combined_data)
+
+# Print the results
+summary(meta_result_with_phylo)
+
+
