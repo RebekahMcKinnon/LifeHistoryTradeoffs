@@ -11,6 +11,11 @@ data <- read.csv("G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/R
 life_hist <- read.csv("G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/PDFs/life_hist_records.csv")
 names(data)
 
+# note to self:
+# added the average lifespan info for the following 3 birds from less reliable sources by necessity 
+# Fairy martins (4.5 years): https://www.hww.ca/en/wildlife/birds/purple-martin.html#:~:text=Banding%20has%20also%20provided%20information,recaptured%20at%20its%20breeding%20colony.
+# Spotted antbirds (4.9 years): https://doi.org/10.1093/beheco/11.6.648
+
 
 # one value for each subjectID
 new_data <- data %>%
@@ -483,6 +488,10 @@ combined_data$FocalSpL_corrected <- gsub("Catharacta skua", "Stercorarius skua",
 combined_data$FocalSpL_corrected <- gsub("Parus palustris", "Poecile palustris", combined_data$FocalSpL_corrected)
 combined_data$FocalSpL_corrected <- gsub("Tarsiger cyanurus", "Luscinia cyanura", combined_data$FocalSpL_corrected)
 
+#check overlap and differences with taxa list
+intersect(unique(combined_data$FocalSpL_corrected), tree$tip.label) 
+setdiff(unique(combined_data$FocalSpL_corrected), tree$tip.label) 
+setdiff(tree$tip.label, unique(combined_data$FocalSpL_corrected)) 
 # theres still one thats present in the data but not in the tree...
 # not sure how to fix this as theres no tree name to change it to 
 # trying a synonym for it?
@@ -490,6 +499,11 @@ combined_data$FocalSpL_corrected <- gsub("Parus caeruleus", "Cyanistes caeruleus
 # both are blue tits 
 # so this reduces the number needed to match to 26
 # confirmed both are blue tits in the original dataframe 
+#check overlap and differences with taxa list
+intersect(unique(combined_data$FocalSpL_corrected), tree$tip.label)
+setdiff(unique(combined_data$FocalSpL_corrected), tree$tip.label)  
+setdiff(tree$tip.label, unique(combined_data$FocalSpL_corrected)) 
+
 
 print(unique(combined_data$FocalSpL))
 
