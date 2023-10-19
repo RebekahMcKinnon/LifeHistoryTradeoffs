@@ -344,7 +344,7 @@ for (moderator in moderators) {
 }
 # these are just remakes of the box plots from the last section but using the flipped G values, so makes more sense 
 
-##### checking outliers -----
+##### Checking outliers -----
 # Calculate Control_SE as a percentage of Control_Mean
 combined_data$Control_Percentage_SE <- (combined_data$Control_SE / combined_data$Control_Mean) * 100
 
@@ -382,6 +382,8 @@ cat("Row numbers of flagged 'Anomalous' Treatment rows: ", paste(anomalous_treat
 # but that they were actually real 
 # all seemed good 
 
+##### Modifying variables -----
+combined_data$Lifespan_ave_scaled <- scale(combined_data$Lifespan_ave, scale = 2)
 ##### Linking to Tree of Life -----
 
 names(combined_data)
@@ -632,18 +634,57 @@ model_4
 # conclusion:
 # I will keep RecNo, FocalSpL_corrected and EffectID as random effects in all the more complex models 
 
+# model with all random effects, no moderators 
+model_4a <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
+                  test = "t", 
+                  method = "REML", 
+                  sparse = FALSE, 
+                  data = combined_data)
+model_4a
+#
+model_4b <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
+                   test = "t", 
+                   method = "REML", 
+                   sparse = FALSE, 
+                   data = combined_data)
+model_4b
+
+anova(model_4a, model_4b)
+
+model_4c <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
+                   R = list(FocalSpL_corrected=cor_tree),
+                   test = "t", 
+                   method = "REML", 
+                   sparse = FALSE, 
+                   data = combined_data)
+model_4c
+# this tells us we shouldnt have phylo in model either
+
+model_4d <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID, ~1 | FocalSpC),
+                   R = list(FocalSpL_corrected=cor_tree),
+                   test = "t", 
+                   method = "REML", 
+                   sparse = FALSE, 
+                   data = combined_data)
+model_4d
+# neither latin, commmon name nor phylo matter so dont include in future model 
+
 ## Step 2: Introducing moderators 
 names(combined_data)
+# can justify removing focalSpL_correlected from future models as AIC not different with or without 
 
 # Model with 3 random effects and 'Treatment' as moderator
 model_5 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
-                  mods = ~ Treatment,
+                  mods = ~ Treatment-1,
                   test = "t", 
                   method = "REML", 
                   sparse = TRUE, 
                   data = combined_data)
 
 model_5
+# overlaps 0 so not 'sig'
+# but in expected direction - more of a change with reduction than enlargement 
+# can calculate bayesian p value - proportion overlap 
 
 # Model with 3 random effects and 'Lifespan_ave' as moderator
 model_6 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
@@ -720,7 +761,7 @@ model_11
 # Model with all random effects and moderators for Treatment and the interaction between treatment and lifespan 
 final_model <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave,
                                  random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected),
-                                 R = list(FocalSpL_corrected=cor_tree),
+                                 R = list(FocalSpL_corrected=cor_tree),# how closely related the sp are
                                  test = "t", 
                                  method = "REML", 
                                  sparse = TRUE, 
@@ -729,6 +770,16 @@ final_model <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifesp
 # i.e., does species longevity mediate response to BSM (Treatment)?
 final_model
 
+
+# Model with all random effects and moderators for Treatment and the interaction between treatment and lifespan 
+final_model_redo <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave_scaled -1,
+                      random = list(~1 | RecNo, ~1 | EffectID),
+                      test = "t", 
+                      method = "REML", 
+                      sparse = TRUE, 
+                      data = combined_data)
+final_model_redo
+# now effect of an increase in 1 SD not 1 year 
 # notes from the above 3 models:
 # based on significance values, final model appears to be best 
 # because it has the lowest p-value for the intercept 
@@ -770,5 +821,40 @@ final_model_jet
 # there is slightly higher unexplained variation related to phylo in the jet model 
 # but nothing particularly notable i don't think 
 
-##### TO DO items: -----
-# will center lifespan_ave - use scale. Do this once Jan/Kim finished reviewing it 
+# re-running final model using scaled average lifespan data 
+final_model2 <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave_scaled,
+                      random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected),
+                      R = list(FocalSpL_corrected=cor_tree),
+                      test = "t", 
+                      method = "REML", 
+                      sparse = TRUE, 
+                      data = combined_data)
+final_model2
+# slightly changes intercept - now more significant value (than in unscaled model) but everything else the same 
+# p value of 0.0047 in final_model versus <0.0001 in scaled model 
+
+##### To do items: -----
+# subtract the year of first breeding from average lifespan to create new column (breeding years)
+# use breeding years in models and compare to check if different results 
+
+# take out the paper with the very different results and check if it changes the results of the meta-analysis 
+
+# rename RecNo as StudyID 
+# run AIC of random effects model (4a) with and without FocalSpL_corrected (name 4c)
+# MuMIn - consider using (multi model inference): https://cran.r-project.org/web/packages/MuMIn/index.html
+
+# plot posteriors for important models 
+
+# make plots of models - orchaRd models (Shinichi package): https://daniel1noble.github.io/orchaRd/
+#Shinichi Nakagawa, Malgorzata Lagisz, Rose E. O’Dea, Patrice Pottier, Joanna Rutkowska, Alistair M. Senior, Yefeng Yang, Daniel W.A. Noble. 2023. orchaRd 2.0: An R package for visualizing meta-analyses with orchard plots. Methods in Ecology and Evolution, https://doi.org/10.1111/2041-210X.14152 (preprint = EcoEvoRxiv, https://doi.org/10.32942/X2QC7).
+
+# plan results structure while writing the methods section; plan which figures to include and where 
+# dataset, overall, moderator analysis... 
+
+# to do: 
+# step 1: write the methods and results, including making and choosing figures to include 
+# step 2: send to Kim
+# step 3: Kim review 
+# step 4: make edits
+# repeat steps 3-4
+# step 5: send to Losia 
