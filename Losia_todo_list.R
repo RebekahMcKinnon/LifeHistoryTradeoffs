@@ -1,21 +1,23 @@
-##### load packages -----
+##### Load packages -----
 library(tidyverse)
 library(dplyr)
 library(metafor)
 library(forestplot)
 library(tidyr)
 library(ggplot2)
+library(tidyverse)
+library(ape, curl)
+library(rotl)
+library(readxl)
+library(here)
+library(readr)
 
-##### load data -----
+##### Load data -----
 data <- read.csv("G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/PDFs/Extractions 2023.06.26.csv")
 life_hist <- read.csv("G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/PDFs/life_hist_records.csv")
 names(data)
 
-# note to self:
-# added the average lifespan info for the following 3 birds from less reliable sources by necessity 
-# Fairy martins (4.5 years): https://www.hww.ca/en/wildlife/birds/purple-martin.html#:~:text=Banding%20has%20also%20provided%20information,recaptured%20at%20its%20breeding%20colony.
-# Spotted antbirds (4.9 years): https://doi.org/10.1093/beheco/11.6.648
-
+##### Initial data exploration -----
 
 # one value for each subjectID
 new_data <- data %>%
@@ -52,7 +54,6 @@ ggplot(new_data, aes(x = Nnests_treat)) +
   ggtitle("Histogram of the Number of Nests in the Treatment Groups") +
   theme_minimal() 
 
-
 treat_ave <- cor(new_data$Treatment_CONT, new_data$control_broodsize)
 treat_ave
 
@@ -84,10 +85,6 @@ first_span # 0.82
 span_period <-cor(life_hist$fledging_period, life_hist$Max_lifespan)
 span_period # 0.84
 
-
-
-
-
 # plot of D values 
 feeding_group <-subset(data, RespCat == "FeedingRates")
 
@@ -104,7 +101,6 @@ print(resp_cat_counts)
 response_var_counts <- table(data$ResponseVar)
 print(response_var_counts)
 
-
 # Create bar plot for 'RespCat' counts
 data_filtered <- subset(data, RespCat != "NA")
 
@@ -112,8 +108,6 @@ ggplot(data_filtered, aes(x = RespCat)) +
   geom_bar(fill = "lightsalmon2") +
   ggtitle("Counts of Estimates by RespCat") +
   theme_minimal()
-##
-
 
 # Cross-tabulation of two categorical variables
 cross_table <- table(new_data$FocalSpC, new_data$TreatDurCat)
@@ -128,7 +122,6 @@ print(chisq_result)
 # there is overlap between species and treatment duration
 # both long and short duration conducted in blue tits (2 and 2 subjectID) and Great tits (10 and 3)
 # all other species only long (mostly) or only short (2)
-
 
 # Cross-tabulation of two categorical variables
 cross_table <- table(new_data$FocalSpC, new_data$RespCat)
@@ -182,8 +175,6 @@ for (moderator in moderators) {
   boxplot_effect(moderator)
 }
 
-
-
 # Create box plots for each moderator
 boxplot_effect <- function(moderator) {
   plot_data <- data.frame(D = data$D, Moderator = data[[moderator]])
@@ -206,11 +197,9 @@ for (moderator in moderators) {
   boxplot_effect(moderator)
 }
 
-
 ##### Calculate Hedges G -----
 # already have values for Cohen's D in the spreadsheet ('D')
 # but calculating Hedges G to use as it is better at dealing with small study sample size 
-
 
 effect_sizes <- escalc(m1i = data$Treatment_Mean, m2i = data$Control_Mean,# using escalc function to calculate hedges G
                        sd1i = data$Treatment_SD, sd2i = data$Control_SD,
@@ -234,7 +223,6 @@ meta_result2 <- rma.mv(yi = yi, V=vi, random = list(~1 |RecNo, ~1 |EffectID), da
 meta_result2
 # RecNo is an identifier for each STUDY i.e., their Endnote record number 
 # EffectID is just row numbers 
-# is this correct? 
 
 meta_result3 <- rma.mv(yi = yi, V=vi, mods = ~Treatment, random = list(~1 |RecNo, ~1 |EffectID), data = data)
 meta_result3
@@ -250,6 +238,8 @@ meta_result5
 names(data)
 
 (combined_data$Lifespan_ave)
+
+# preparing some things to make figures with 
 
 # Calculate the mean G value for the enlarged group
 combined_data$enlarged_mean <- mean(combined_data$yi[combined_data$Treatment == "enlarged"], na.rm = TRUE)
@@ -278,8 +268,6 @@ ggplot() +
   theme_minimal()+
   theme(axis.text.y = element_text(size = 12, face="bold"),
         axis.title.x = element_text(size = 12, face = "bold"))
-###
-
 
 ggplot() +
   geom_jitter(data = combined_data, aes(y = Lifespan_ave, x = yi, color = Treatment), width = 0.1, height = 0, size = 3, alpha = 0.5) +
@@ -288,7 +276,7 @@ ggplot() +
   theme_minimal() +
   theme(axis.title.x = element_text(size = 12, face = "bold"),
         axis.title.y = element_text(size=12, face="bold"))
-###
+
 ggplot() +
   geom_jitter(data = combined_data, aes(y = Lifespan_ave, x = yi, color = Treatment), width = 0.1, height = 0, size = 3, alpha = 0.5) +
   labs(x = "Effect Size (Hedges' g)", y = "Longevity", color = "Treatment") +
@@ -303,8 +291,7 @@ ggplot() +
 
 
 ##### Create box plots for each moderator -----
-boxplot_effect <- function(moderator) {
-  plot_data <- data.frame(G = combined_data$yi, Moderator = combined_data[[moderator]])
+boxplot_effect <- function(moderator) {plot_data <- data.frame(G = combined_data$yi, Moderator = combined_data[[moderator]])
   plot_title <- paste("Effect Size (G) by", moderator)
   
   # Create two separate panels for enlarged and reduced Treatment with color mapping
@@ -315,24 +302,21 @@ boxplot_effect <- function(moderator) {
     labs(title = plot_title, x = NULL, y = "Effect Size (G)") +
     theme_light() +
     guides(fill = FALSE)  # Remove the legend
-  
-  print(plot_obj)
-}
+  print(plot_obj)}
 
 # List of moderators
 moderators <- c("FocalSpC", "Treatment_stage", "TreatDurCat", "RespCat")
 
 # Create and display box plots for each moderator
-for (moderator in moderators) {
-  boxplot_effect(moderator)
-}
+for (moderator in moderators) {boxplot_effect(moderator)}
 
 
-##### remaking box plots with flipped ES -----
+##### Remaking box plots with flipped ES -----
 # flip ES
 combined_data$G_flip <- combined_data$yi * combined_data$ES_flip
-combined_data$V_flip <- combined_data$vi * combined_data$ES_flip
-
+# we flipped the ES's where appropriate such that a positive value always indicated 
+# change in the direction predicted by theory 
+# for the meta-analyses etc. below I use this flipped ES 
 
 # Create box plots for each moderator but for flipped data 
 boxplot_effect <- function(moderator) {
@@ -358,19 +342,17 @@ moderators <- c("FocalSpC", "Treatment_stage", "TreatDurCat", "RespCat")
 for (moderator in moderators) {
   boxplot_effect(moderator)
 }
-
-
+# these are just remakes of the box plots from the last section but using the flipped G values, so makes more sense 
 
 ##### checking outliers -----
 # Calculate Control_SE as a percentage of Control_Mean
 combined_data$Control_Percentage_SE <- (combined_data$Control_SE / combined_data$Control_Mean) * 100
 
-# Flag rows where the percentage is an order of magnitude more or less than 10%
+# Flag rows where the percentage is less than 5 or greater than 50
 combined_data$Flag_Anomalous <- ifelse(
   combined_data$Control_Percentage_SE < 5 | combined_data$Control_Percentage_SE > 50, 
   "Anomalous", 
-  "Not Anomalous"
-)
+  "Not Anomalous")
 
 # Print the first few rows to check the results
 head(combined_data)
@@ -396,14 +378,11 @@ anomalous_treatment_row_numbers <- which(combined_data$Treatment_Percentage_SE <
 # Print row numbers
 cat("Row numbers of flagged 'Anomalous' Treatment rows: ", paste(anomalous_treatment_row_numbers, collapse = ", "), "\n")
 
+# we did this so that I could double check these ones to make sure they weren't errors in calculations/recording in the spreadsheet etc 
+# but that they were actually real 
+# all seemed good 
 
 ##### Linking to Tree of Life -----
-
-# load packages needed here 
-library(tidyverse)
-library(ape, curl)
-library(rotl)
-library(readxl)
 
 names(combined_data)
 
@@ -415,10 +394,9 @@ length(unique(myspecies)) #27
 
 # use rotl package to retreive synthetic species tree from open tree of life
 taxa <- tnrs_match_names(names = myspecies, context_name = "Birds")
-dim(taxa) #27 8 
-# ask losia what these numbers mean 
+dim(taxa) #27 8
 
-
+# check number of approximate matches 
 table(taxa$approximate_match) #4 approximate matches
 
 taxa[taxa$approximate_match==TRUE, ]
@@ -430,7 +408,7 @@ taxa[taxa$approximate_match==TRUE, ]
 names(combined_data)
 
 # get list of unique species from FocalSpL column 
-combined_data$FocalSpL_corrected <- combined_data$FocalSpL
+combined_data$FocalSpL_corrected <- combined_data$FocalSpL # create column in which to put the corrected names 
 
 length(unique(combined_data$FocalSpL_corrected)) # 27 species 
 
@@ -444,13 +422,15 @@ combined_data$FocalSpL_corrected <- gsub("Strix aluco ", "Strix aluco", combined
 combined_data$FocalSpL_corrected <- gsub("phaethon rubricauda", "Phaethon rubricauda", combined_data$FocalSpL_corrected)
 combined_data$FocalSpL_corrected <- gsub("Phaethon rubricauda ", "Phaethon rubricauda", combined_data$FocalSpL_corrected)
 
-
+# check on changes 
 print(unique(combined_data$FocalSpL_corrected))
+
 # get list of unique species from FocalSpL_corrected column 
 myspecies2 <- as.character(unique(combined_data$FocalSpL_corrected))
 length(myspecies2) # confirming still the same (27), it is 
 
 print(myspecies2)
+
 # rerun matching to tree of life 
 taxa2 <- tnrs_match_names(names = myspecies2, context_name = "Birds")
 dim(taxa2) # 27 8 still
@@ -459,7 +439,8 @@ dim(taxa2) # 27 8 still
 table(taxa2$approximate_match)
 taxa[taxa2$approximate_match==TRUE, ] # 0 approximate matches - good 
 
-### get tree 
+# now link to tree:
+# get tree 
 tree <- tol_induced_subtree(ott_ids = taxa[["ott_id"]], label_format = "name")  
 plot(tree, cex=.6, label.offset =.1, no.margin = TRUE)
 
@@ -469,7 +450,7 @@ length(tree$tip.label) #26 i.e., 1 missing
 
 # check which one is missing 
 print(myspecies2)
-# parus montanus is missing, assuming it should be with Parus major 
+# parus montanus is missing, should be with Parus major 
 
 # check if species names are matching 
 #check overlap and differences with taxa list
@@ -496,11 +477,10 @@ combined_data$FocalSpL_corrected <- gsub("Parus caeruleus", "Cyanistes caeruleus
 # both are blue tits 
 # so this reduces the number needed to match to 26
 # confirmed both are blue tits in the original dataframe 
-#check overlap and differences with taxa list
+# check overlap and differences with taxa list
 intersect(unique(combined_data$FocalSpL_corrected), tree$tip.label)
 setdiff(unique(combined_data$FocalSpL_corrected), tree$tip.label)  
 setdiff(tree$tip.label, unique(combined_data$FocalSpL_corrected)) 
-
 
 print(unique(combined_data$FocalSpL))
 
@@ -530,9 +510,8 @@ is.binary(tree) #TRUE
 # plot final tree
 plot(tree2, cex=.6, label.offset =.1, no.margin = TRUE)
 
-# no branch lengths are included in tree from Losia code, 
-# need to be created later via simulations
-# trying to do this below...
+# no branch lengths are included in tree 
+# need to be created via simulations
 
 # Simulate branch lengths based on a molecular clock model
 tree_with_branch_lengths <- compute.brlen(tree2, method = "molecular_clock", rate = 1) # ask losia what the (clock) rate should be set to? 
@@ -543,33 +522,11 @@ plot(tree_with_branch_lengths, cex = 0.6, label.offset = 0.1, no.margin = TRUE)
 # Check the tree with branch lengths
 summary(tree_with_branch_lengths)
 
-### now attempting to incorporate this info into a meta-analysis 
-# not sure if this is correct 
-# check with Losia during meeting
-
-
+#create matrix to use in meta-analysis models 
 cor_tree <- vcv(tree_with_branch_lengths, corr=T)
 
-
-
-# Extract branch lengths from the tree_with_branch_lengths
-#branch_lengths <- tree_with_branch_lengths$edge.length
-
-# Create a named vector with species names as names and branch lengths as values
-#branch_lengths_named <- setNames(branch_lengths, tree_with_branch_lengths$tip.label)
-
-# Match branch lengths to species in combined_data based on species names
-#combined_data$BranchLength <- branch_lengths_named[combined_data$FocalSpL_corrected]
-
-# Fit a meta-analysis model with BranchLength as a moderator
-#meta_result_with_phylo <- rma.mv(yi = yi, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave + BranchLength,
-                            #     random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected, ~1 | cor_tree),
-                             #    data = combined_data)
-#
-# Print the results
-#summary(meta_result_with_phylo)
-
-# change name of FocalSpL_corrected to Phylo 
+# tested using the model which most closely answers my research questions below
+# but run models of increasing complexity in later section 
 
 ### should be running with flipped G 
 meta_result_with_phylo <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave,
@@ -585,35 +542,17 @@ summary(meta_result_with_phylo)
 
 str(cor_tree)
 
-# TO DO/CHANGE: 
-# instead of this
-# run with Jetz tree of life 
-# include the phylo matrix as random effect in meta-analysis model 
-#Jetz, W., Thomas, G.H., Joy, J.B., Hartmann, K. & Mooers, A.O. (2012). The global diversity of birds in space and time. Nature, 491, 444-448
-
-
-
-
 ##### Linking to Jetz Tree -----
 
-# load additional packages needed
-library(here)
-library(readr)
-
-# load tree data 
-#tree_jet <- readRDS(here("G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/R stuff/tree_50.RDS")) # tree from Shinichi github repo 
-
-#tree_jet <- tree_jet[[1]]
-#plot(tree_jet)
-
-
+# load tree
+# (note: called tree_retry because I originally ran using a different tree file. This note is for personal reference - please ignore)
 tree_retry <- read.tree("G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/R stuff/tree.tre")
 plot(tree_retry)
 
-
+# remove unnecessary stuff from tree to allow for easier matching 
 tree_retry$tip.label <- gsub(" \\(.*", "", tree_retry$tip.label) #remove comments
 tree_retry$tip.label <- gsub("_"," ", tree_retry$tip.label) #get rid of the underscores
-length(tree_retry$tip.label)
+length(tree_retry$tip.label) # check length - 9993 species in full tree 
 
 # check overlap and differences with taxa list 
 combined_data$FocalSpL_jet <- combined_data$FocalSpL
@@ -623,12 +562,12 @@ intersect(unique(combined_data$FocalSpL_jet), tree_retry$tip.label)# overlapping
 setdiff(unique(combined_data$FocalSpL_jet), tree_retry$tip.label) # in data but not in tree
 setdiff(tree_retry$tip.label, unique(combined_data$FocalSpL_jet)) # in tree but not in data 
 
-# correct those that are in my data but arent in the tree 
-combined_data$FocalSpL_jet <- gsub("Certhia familiaris ", "Certhia familiaris", combined_data$FocalSpL_jet)
-combined_data$FocalSpL_jet <- gsub("Hirundo ariel ", "Hirundo ariel", combined_data$FocalSpL_jet)
-combined_data$FocalSpL_jet <- gsub("Strix aluco ", "Strix aluco", combined_data$FocalSpL_jet)
-combined_data$FocalSpL_jet <- gsub("Phaethon rubricauda ", "Phaethon rubricauda", combined_data$FocalSpL_jet)
-combined_data$FocalSpL_jet <- gsub("Cyanistes caeruleus", "Parus caeruleus", combined_data$FocalSpL_jet)
+# correct those that are in my data but aren't in the tree 
+combined_data$FocalSpL_jet <- gsub("Certhia familiaris ", "Certhia familiaris", combined_data$FocalSpL_jet)# unnecessary space
+combined_data$FocalSpL_jet <- gsub("Hirundo ariel ", "Hirundo ariel", combined_data$FocalSpL_jet)# unnecessary space 
+combined_data$FocalSpL_jet <- gsub("Strix aluco ", "Strix aluco", combined_data$FocalSpL_jet)# unnecessary space 
+combined_data$FocalSpL_jet <- gsub("Phaethon rubricauda ", "Phaethon rubricauda", combined_data$FocalSpL_jet)# unnecessary space 
+combined_data$FocalSpL_jet <- gsub("Cyanistes caeruleus", "Parus caeruleus", combined_data$FocalSpL_jet)# synonym
 
 intersect(unique(combined_data$FocalSpL_jet), tree_retry$tip.label)# now all overlapping between data and tree 
 setdiff(unique(combined_data$FocalSpL_jet), tree_retry$tip.label) # none in data but not in tree
@@ -642,11 +581,12 @@ plot(pruned_tree)
 #turn into correlation matrix
 corr_jet_tree <- vcv(pruned_tree, corr=T)
 
+##### Running meta-analyses -----
 
-
-##### Running meta-analyses using Tree of Life as Phylo -----
+# ran models of increasing complexity 
 
 ## Step 1: no moderators, only random effects (increasing complexity)
+
 # Model 1: Random effect 'RecNo', no moderators
 model_1 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo),
                   test = "t", 
@@ -682,13 +622,15 @@ model_4
 # notes on findings from the above 4 models:
 # recno and focalSpC have similar estimates variance components (0.1325 and 0.1254, respectively) 
 # and similar t-values, indicating that they might have a similar level of impact.
+
 # focalSpC also (obviously) has the same estimated variance and t-value as FocalSpL_corrected 
 # meaning probably we should only keep FocalSpL_corrected in the models and not focalSpC
+
 # EffectID has the highest estimated variance component (0.1393) and the highest t-value (13.4745)
 # meaning that EffectID should definitely be included in all models going forward 
+
 # conclusion:
 # I will keep RecNo, FocalSpL_corrected and EffectID as random effects in all the more complex models 
-
 
 ## Step 2: Introducing moderators 
 names(combined_data)
@@ -738,18 +680,19 @@ model_9 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_c
                   sparse = TRUE, 
                   data = combined_data)
 # note on model 9: im using Effort_level here to indicate if the response category is a measure of 
-# total effort or effort per nestling 
-# this is in place of using response category as a moderator as was recommended during last Losia meeting 
+# total (called parental) effort or effort per nestling 
+# this is in place of using response category itself as a moderator 
 model_9
 
 # notes on findings from above models (5-9) i.e., single moderator models:
 # somewhat annoyingly none of the moderators in the models (i.e., Treatment, Lifespan_ave, Treatment_stage, TreatDurCat, Effort_level)
 # appear to be significant in explaining the variation in the results...
+
 # variation in the models also remains relatively constant across moderators 
 # seems that none of the included moderators have a strong impact on observed variation 
+
 # conclusion:
-# 1. check with Losia and Kim that this doesnt seem... wrong 
-# 2. I will include (have included) the moderators most pertinant to my research qu. in further models 
+# I will include (have included) the moderators most pertinent to my research qu.in further models 
 
 # Model with all random effects and 2 moderators: Treatment and Lifespan
 model_10 <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Lifespan_ave,
@@ -761,7 +704,7 @@ model_10 <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Lifespan_ave,
                    data = combined_data)
 model_10
 
-# Model with all random effectsd and 3 moderators: Treatment, LIfespan and Effort level 
+# Model with all random effects and 3 moderators: Treatment, LIfespan and Effort level 
 model_11 <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Lifespan_ave + Effort_level,
                    random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected, ~1 | FocalSpC),
                    R = list(FocalSpL_corrected=cor_tree),
@@ -771,6 +714,7 @@ model_11 <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Lifespan_ave + Effo
                    data = combined_data)
 # effort level is arguably not directly related to my research qu 
 # but is predicted to be important in theory...and logic 
+# decided not to include it in the final model below as, again, it seemingly had no real impact in explaining variation 
 model_11
 
 # Model with all random effects and moderators for Treatment and the interaction between treatment and lifespan 
@@ -782,16 +726,16 @@ final_model <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifesp
                                  sparse = TRUE, 
                                  data = combined_data)
 # this is the model which most directly addresses my research question 
-# i.e., does species longevity mediate its the response to BSM (Treatment)
+# i.e., does species longevity mediate response to BSM (Treatment)?
 final_model
 
 # notes from the above 3 models:
 # based on significance values, final model appears to be best 
 # because it has the lowest p-value for the intercept 
-# indicating that it explains the most variation (if i understand correctly)
+# indicating that it explains the most variation
 # it is also the model which most directly addresses my research question 
 
-# some things of note from this model (potentially discuss during meeting) - 
+# some things of note from this model - 
 
 #(1)
 # QE (df = 297) = 613.5334, p-value < 0.0001.
@@ -809,10 +753,10 @@ final_model
 #(4)
 #The largest sources of residual variance
 #are associated with the random effects "RecNo," "EffectID," and "FocalSpL_corrected."
-#this suggests, i think, that the species (and the study itself) have a greater impact
+#this suggests that the species (and the study itself) have a greater impact
 #on response to BSM than longevity 
 
-# running the final model using the jet tree instead just to confirm it isnt different 
+# running the final model using the jet tree instead just to confirm it isn't different 
 final_model_jet <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave,
                       random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_jet),
                       R = list(FocalSpL_jet=corr_jet_tree),
@@ -824,147 +768,7 @@ final_model_jet
 
 # they are effectively the same 
 # there is slightly higher unexplained variation related to phylo in the jet model 
-# but nothing particularly notable i dont think 
-
+# but nothing particularly notable i don't think 
 
 ##### TO DO items: -----
 # will center lifespan_ave - use scale. Do this once Jan/Kim finished reviewing it 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##### keeping in case needed again. delete if above code all works properly: -----
-
-###
-
-# most complex 
-meta_result_with_phylo <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave,
-                                 random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected, ~1 | FocalSpC),
-                                 R = list(FocalSpL_corrected=cor_tree),
-                                 test = "t", 
-                                 method = "REML", 
-                                 sparse = TRUE, 
-                                 data = combined_data)
-
-
-
-#no moderators 
-meta_result_with_phylo_1 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected, ~1 | FocalSpC),
-                                   R = list(FocalSpL_corrected=cor_tree),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-meta_result_with_phylo_1 
-
-# 
-meta_result_with_phylo_2 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-meta_result_with_phylo_2
-
-
-# 
-meta_result_with_phylo_3 <- rma.mv(yi = G_flip, V = vi, 
-                                   mods = ~ Treatment-1, # gives two intercepts if run with -1
-                                   random = list(~1 | RecNo, ~1 | EffectID),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-# just tells if they are different from 0 but not if they are different from each other 
-meta_result_with_phylo_3
-
-# 
-
-meta_result_with_phylo_4 <- rma.mv(yi = G_flip, V = vi, 
-                                   mods = ~ Treatment, # this checks if they are different from each other 
-                                   random = list(~1 | RecNo, ~1 | EffectID),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-meta_result_with_phylo_4
-
-# report both 3 and 4 in paper 
-meta_result_with_phylo_5 <- rma.mv(yi = G_flip, V = vi, 
-                                   mods = ~ scale(Lifespan_ave), # this checks if they are different from each other 
-                                   random = list(~1 | RecNo, ~1 | EffectID),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-meta_result_with_phylo_5
-
-meta_result_with_phylo_6 <- rma.mv(yi = G_flip, V = vi, 
-                                   mods = ~ Treatment + scale(Lifespan_ave), # this checks if they are different from each other 
-                                   random = list(~1 | RecNo, ~1 | EffectID),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-meta_result_with_phylo_6
-
-meta_result_with_phylo_7 <- rma.mv(yi = G_flip, V = vi, 
-                                   mods = ~ Treatment + Treatment:scale(Lifespan_ave), # this checks if they are different from each other 
-                                   random = list(~1 | RecNo, ~1 | EffectID),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-meta_result_with_phylo_7
-
-meta_result_with_phylo_8 <- rma.mv(yi = G_flip, V = vi, 
-                                   mods = ~ Treatment + Treatment:scale(Lifespan_ave) + RespCat, # this checks if they are different from each other 
-                                   random = list(~1 | RecNo, ~1 | EffectID),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-meta_result_with_phylo_8
-
-meta_result_with_phylo_9 <- rma.mv(yi = G_flip, V = vi, 
-                                   mods = ~ RespCat-1, 
-                                   random = list(~1 | RecNo, ~1 | EffectID),
-                                   test = "t", 
-                                   method = "REML", 
-                                   sparse = TRUE, 
-                                   data = combined_data)
-meta_result_with_phylo_9
-
-# have column thats just total effort or effort per nesting 
-# instead of using respcat variable 
-# run another model with that 
-
-
-# meta analytic model 
-# just explore random effects 
-# once decide what random effects are informative 
-# move to meta-regression 
-# look at moderators 
-
-# will center lifespan_ave 
-# use scale 
-
-# rerun plots with flipped data to check 
-
-# try to think of everything and include them as single moderator models 
-# eg egg versus nestling 
-# long or short etc. 
-# if any are significant worry about it then 
-# how much variation is also relevant 
-
-# use this for Jetz tree code
-# https://itchyshin.github.io/multimodality/#meta-analysis
