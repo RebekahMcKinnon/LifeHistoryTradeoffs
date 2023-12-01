@@ -632,7 +632,7 @@ model_4
 # meaning that EffectID should definitely be included in all models going forward 
 
 # conclusion:
-# I will keep RecNo, FocalSpL_corrected and EffectID as random effects in all the more complex models 
+# I will check using an ANOVA whether or not I should retain FocalSpL_corrected in the models
 
 # model with all random effects, no moderators 
 model_4a <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
@@ -641,7 +641,8 @@ model_4a <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_
                   sparse = FALSE, 
                   data = combined_data)
 model_4a
-#
+
+#model with 2 random effects (not FocalSpL_corrected), no moderators 
 model_4b <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
                    test = "t", 
                    method = "REML", 
@@ -650,6 +651,10 @@ model_4b <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID)
 model_4b
 
 anova(model_4a, model_4b)
+# these are effectively the same 
+# model_4b is slightly better indicating that FocalSpL_corrected should not be retained in future models
+
+# checking if I should retain Phylogeny in future models 
 
 model_4c <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
                    R = list(FocalSpL_corrected=cor_tree),
@@ -658,8 +663,11 @@ model_4c <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_
                    sparse = FALSE, 
                    data = combined_data)
 model_4c
+
+anova(model_4a, model_4c)
 # this tells us we shouldnt have phylo in model either
 
+# final check of random effects to include: 
 model_4d <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID, ~1 | FocalSpC),
                    R = list(FocalSpL_corrected=cor_tree),
                    test = "t", 
@@ -667,27 +675,63 @@ model_4d <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_
                    sparse = FALSE, 
                    data = combined_data)
 model_4d
-# neither latin, commmon name nor phylo matter so dont include in future model 
+
+#conclusion from model_4d: 
+# neither latin, commmon name nor phylo matter so dont include in future models (0.00)
+
+# comparing model 4s using AIC to validate support for above conclusions 
+
+# Calculate AIC for each model
+AIC_4a <- AIC(model_4a)
+AIC_4b <- AIC(model_4b)
+AIC_4c <- AIC(model_4c)
+AIC_4d <- AIC(model_4d)
+
+# Compare AIC values for model_4a with model_4b
+if (AIC_4a < AIC_4b) {
+  cat("Model 4a is preferred over Model 4b based on AIC.\n")
+} else {
+  cat("Model 4b is preferred over Model 4a based on AIC.\n")
+}
+# model 4b is better than 4a i.e., supports dropping FocalSpL_corrected from models 
+
+# Compare AIC values for model_4a with model_4c
+if (AIC_4a < AIC_4c) {
+  cat("Model 4a is preferred over Model 4c based on AIC.\n")
+} else {
+  cat("Model 4c is preferred over Model 4a based on AIC.\n")
+}
+# model 4c is slightly better i.e., supports inclusion of phylo BUT estimate is 0 so stay with idea of not including it 
+
+# Compare AIC values for model_4a with model_4d
+if (AIC_4a < AIC_4d) {
+  cat("Model 4a is preferred over Model 4d based on AIC.\n")
+} else {
+  cat("Model 4d is preferred over Model 4a based on AIC.\n")
+}
+# 4a is better so again supports not including species in model 
 
 ## Step 2: Introducing moderators 
 names(combined_data)
-# can justify removing focalSpL_correlected from future models as AIC not different with or without 
 
-# Model with 3 random effects and 'Treatment' as moderator
-model_5 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
-                  mods = ~ Treatment-1,
+# Model with 2 random effects and 'Treatment' as moderator
+model_5 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
+                  mods = ~ Treatment,
                   test = "t", 
                   method = "REML", 
                   sparse = TRUE, 
                   data = combined_data)
 
 model_5
-# overlaps 0 so not 'sig'
-# but in expected direction - more of a change with reduction than enlargement 
-# can calculate bayesian p value - proportion overlap 
+# both intercepts sig different from 0
+# more of a change with reduction than enlargement 
+# however, very small (not sig) difference between effect of reduction and effect of enlargement 
+# test of moderators has p-val of 0.2018 (when running without -1) 
+#indicating that reduced and enlarged effects not sig different from eachother
 
-# Model with 3 random effects and 'Lifespan_ave' as moderator
-model_6 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
+
+# Model with 2 random effects and 'Lifespan_ave' as moderator
+model_6 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
                   mods = ~ Lifespan_ave,
                   test = "t", 
                   method = "REML", 
@@ -695,8 +739,8 @@ model_6 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_c
                   data = combined_data)
 model_6
 
-# Model with 3 random effects and 'Treatment_stage' as moderator
-model_7 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
+# Model with 2 random effects and 'Treatment_stage' as moderator
+model_7 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
                   mods = ~ Treatment_stage,
                   test = "t", 
                   method = "REML", 
@@ -704,8 +748,8 @@ model_7 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_c
                   data = combined_data)
 model_7
 
-# Model with 3 random effects and 'TreatDurCat' as moderator
-model_8 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
+# Model with 2 random effects and 'TreatDurCat' as moderator
+model_8 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
                   mods = ~ TreatDurCat,
                   test = "t", 
                   method = "REML", 
@@ -713,8 +757,8 @@ model_8 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_c
                   data = combined_data)
 model_8
 
-# Model with 3 random effects and 'Effort_level' as moderator
-model_9 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID),
+# Model with 2 random effects and 'Effort_level' as moderator
+model_9 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
                   mods = ~ Effort_level,
                   test = "t", 
                   method = "REML", 
@@ -737,8 +781,7 @@ model_9
 
 # Model with all random effects and 2 moderators: Treatment and Lifespan
 model_10 <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Lifespan_ave,
-                   random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected, ~1 | FocalSpC),
-                   R = list(FocalSpL_corrected=cor_tree),
+                   random = list(~1 | RecNo, ~1 | EffectID),
                    test = "t", 
                    method = "REML", 
                    sparse = TRUE, 
@@ -747,8 +790,7 @@ model_10
 
 # Model with all random effects and 3 moderators: Treatment, LIfespan and Effort level 
 model_11 <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Lifespan_ave + Effort_level,
-                   random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected, ~1 | FocalSpC),
-                   R = list(FocalSpL_corrected=cor_tree),
+                   random = list(~1 | RecNo, ~1 | EffectID),
                    test = "t", 
                    method = "REML", 
                    sparse = TRUE, 
@@ -760,8 +802,7 @@ model_11
 
 # Model with all random effects and moderators for Treatment and the interaction between treatment and lifespan 
 final_model <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave,
-                                 random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected),
-                                 R = list(FocalSpL_corrected=cor_tree),# how closely related the sp are
+                                 random = list(~1 | RecNo, ~1 | EffectID),
                                  test = "t", 
                                  method = "REML", 
                                  sparse = TRUE, 
@@ -771,43 +812,26 @@ final_model <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifesp
 final_model
 
 
-# Model with all random effects and moderators for Treatment and the interaction between treatment and lifespan 
-final_model_redo <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave_scaled -1,
+# Model with all random effects and moderators for Treatment and the interaction between treatment and lifespan but using scaled lifespan average  
+final_model_b <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave_scaled, # if add -1 means it shows separate intercepts 
                       random = list(~1 | RecNo, ~1 | EffectID),
                       test = "t", 
                       method = "REML", 
                       sparse = TRUE, 
                       data = combined_data)
-final_model_redo
+final_model_b
 # now effect of an increase in 1 SD not 1 year 
+# use this one as final model 
+
+
 # notes from the above 3 models:
-# based on significance values, final model appears to be best 
+# based on significance values, final model b appears to be best 
 # because it has the lowest p-value for the intercept 
 # indicating that it explains the most variation
 # it is also the model which most directly addresses my research question 
 
-# some things of note from this model - 
 
-#(1)
-# QE (df = 297) = 613.5334, p-value < 0.0001.
-#This indicates the presence of high residual heterogeneity, 
-#i.e., a significant amount of unexplained variation in the data.
-
-#(2) connected to (1)
-# none of the moderators have a significant impact on outcomes 
-
-#(3) 
-#The intercept (intrcpt) is estimated at 0.3299 with a standard error of 0.1158. 
-#It is statistically significant (p-val = 0.0047), 
-#this suggests a baseline effect that exists regardless of the moderators.
-
-#(4)
-#The largest sources of residual variance
-#are associated with the random effects "RecNo," "EffectID," and "FocalSpL_corrected."
-#this suggests that the species (and the study itself) have a greater impact
-#on response to BSM than longevity 
-
-# running the final model using the jet tree instead just to confirm it isn't different 
+# running the final model but with species and phylo using the jet tree instead just to confirm it isn't different 
 final_model_jet <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave,
                       random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_jet),
                       R = list(FocalSpL_jet=corr_jet_tree),
@@ -821,17 +845,113 @@ final_model_jet
 # there is slightly higher unexplained variation related to phylo in the jet model 
 # but nothing particularly notable i don't think 
 
-# re-running final model using scaled average lifespan data 
-final_model2 <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave_scaled,
+# re-running final model but with species and phylo using scaled average lifespan data 
+final_model_jet_b <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave_scaled,
                       random = list(~1 | RecNo, ~1 | EffectID, ~1 | FocalSpL_corrected),
                       R = list(FocalSpL_corrected=cor_tree),
                       test = "t", 
                       method = "REML", 
                       sparse = TRUE, 
                       data = combined_data)
-final_model2
-# slightly changes intercept - now more significant value (than in unscaled model) but everything else the same 
-# p value of 0.0047 in final_model versus <0.0001 in scaled model 
+final_model_jet_b
+
+# conclusion:
+# can comfortably just use the tree of life model. same thing. but in either case,not including species and phylo in final models 
+
+
+##### OrchaRd plots 
+
+#install and load necessary packages 
+#install.packages("pacman")
+#rm(list = ls())
+#devtools::install_github("daniel1noble/orchaRd", ref = "main", force = TRUE)
+#pacman::p_load(devtools, tidyverse, metafor, patchwork, R.rsp, orchaRd, emmeans, ape, phytools, flextable)
+
+
+## created figures following the flow of the github doc by Daniel noble
+# # make plots of models - orchaRd models (Shinichi package): https://daniel1noble.github.io/orchaRd/
+
+orchaRd::orchard_plot(final_model_b, mod="1", group = "RecNo", xlab = "Standardised mean difference", 
+                      transfm = "none") 
+
+# use i2_sn function to obtain the total I^2
+
+I2 <- orchaRd::i2_ml(final_model_b)
+
+model_results <- orchaRd::mod_results(final_model_b, mod = "1", at = NULL,  group = "RecNo")
+model_results
+
+orchaRd::orchard_plot(model_results, mod="1", xlab = "Standardised mean difference") + 
+  annotate(geom="text", x= 0.80, y= 1, label= paste0("italic(I)^{2} == ", round(I2[1],4)), 
+           color="black", parse = TRUE, size = 5) +
+  scale_fill_manual(values="cornflowerblue") +
+  scale_colour_manual(values="cornflowerblue")
+
+# figures show that overall estimate from a random-effects meta-analysis of 301 effect sizes from 52 studies is close to 0
+# 95% CIs span the line of no effect 
+
+# doing the same thing but for the other random effect i.e., effectID
+orchaRd::orchard_plot(final_model_b, mod="1", group = "EffectID", xlab = "Standardised mean difference", 
+                      transfm = "none") 
+
+# use i2_sn function to obtain the total I^2
+
+I2 <- orchaRd::i2_ml(final_model_b)
+
+model_results2 <- orchaRd::mod_results(final_model_b, mod = "1", at = NULL,  group = "EffectID")
+model_results2
+
+orchaRd::orchard_plot(model_results2, mod="1", xlab = "Standardised mean difference") + 
+  annotate(geom="text", x= 0.80, y= 1, label= paste0("italic(I)^{2} == ", round(I2[1],4)), 
+           color="black", parse = TRUE, size = 5) +
+  scale_fill_manual(values="cornflowerblue") +
+  scale_colour_manual(values="cornflowerblue")
+
+# also close to 0 with CIS that span 0 (no effect)
+
+# a caterpillar plot 
+
+# 1. for RecNo
+orchaRd::caterpillars(model_results, mod="1", xlab = "Standardised mean difference") 
+
+# 2. for EffectID
+# a caterpillar plot (not a caterpillars plot)
+orchaRd::caterpillars(model_results2, mod="1", xlab = "Standardised mean difference") 
+
+# adding moderators 
+# Again, we can create a table of results
+res2 <- orchaRd::mod_results(final_model_b, mod = "Treatment", group = "RecNo")
+res2
+
+# creating this also for my interaction 
+res2b <- orchaRd::mod_results(final_model_b, mod = "Lifespan_ave_scaled", by = "Treatment", group = "RecNo")
+res2b
+
+
+# making cool figure to compare reduced and enlarged broods 
+p1 <- orchaRd::orchard_plot(res2, 
+                            mod = "Treatment", group = "RecNo", xlab = "Standardised mean difference")
+
+p1 # can likely use this in publication 
+
+# caterpillar of same thing 
+p1b <- orchaRd::caterpillars(res2, 
+                             mod = "Treatment", group = "RecNo",  xlab = "Standardised mean difference")
+p1b
+
+
+# bubble plot showing effect of treatment across average lifespan values 
+
+orchaRd::bubble_plot(res2b, group = "RecNo",  mod = "Lifespan_ave_scaled", xlab = "Average Lifespan (Scaled)", legend.pos = "top.left")
+# awesome plot of results, use in puplication 
+
+# remaking this using unscaled average lifespan data as it improves reader understanding 
+
+# creating this also for my interaction 
+res2b_unscaled <- orchaRd::mod_results(final_model, mod = "Lifespan_ave", by = "Treatment", group = "RecNo")
+res2b_unscaled
+
+orchaRd::bubble_plot(res2b_unscaled, group = "RecNo",  mod = "Lifespan_ave", xlab = "Average Lifespan", legend.pos = "none")
 
 ##### To do items: -----
 # subtract the year of first breeding from average lifespan to create new column (breeding years)
