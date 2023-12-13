@@ -11,12 +11,225 @@ library(rotl)
 library(readxl)
 library(here)
 library(readr)
+library(patchwork)
+library(meta)
+library(emmeans)
+
+
+##### Making explanatory figures for intro -----
+
+# figure 1
+# Creating the dataframe (invented data)
+df <- data.frame(
+  individual = rep(c("a", "b", "c", "d", "e"), each = 3),
+  trait_1 = c(1, 1.5, 0.5, 2.1, 2.58, 1.6, 2.85, 3.49, 2.0, 4, 4.6, 3.4, 4.9, 5.5, 4.1),
+  trait_2 = c(1, 0.94, 1.1, 2, 1.92, 2.13, 3, 2.95, 3.12, 4, 3.91, 4.11, 5, 4.93, 5.12)
+)
+
+# simple figure 
+figure1 <- ggplot(df, aes(x = trait_2, y = trait_1)) +
+  geom_point(aes(color = individual), size = 4) +
+  geom_line(data = data.frame(x = c(0.7, 5.1), y = c(0.7, 5.1)),
+            aes(x = x, y = y), linetype = "dashed", color = "grey25", size = 1) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  scale_y_continuous(breaks = seq(1, 5, 1), limits = c(0, 6)) +
+  scale_x_continuous(breaks = seq(1, 5, 1), limits = c(0, 6)) +
+  labs(x = "Trait 2", y = "Trait 1") +
+  theme(legend.position = "none")
+
+print(figure1)
+
+# save this figure in high DPI for publication 
+# Specify the file path and name
+file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_1_colour.tiff"
+
+# Save the combined plot with high DPI
+ggsave(file_path, plot = figure1, width = 12, height = 8, dpi = 600)
+
+# same figure in greyscale in case needed for publication 
+figure1_greyscale <- ggplot(df, aes(x = trait_2, y = trait_1, color = individual)) +
+  geom_point(size = 4) +
+  geom_line(data = data.frame(x = c(0.7, 5.1), y = c(0.7, 5.1)),
+            aes(x = x, y = y), linetype = "dashed", color = "grey25", size = 1) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  scale_y_continuous(breaks = seq(1, 5, 1), limits = c(0, 6)) +
+  scale_x_continuous(breaks = seq(1, 5, 1), limits = c(0, 6)) +
+  labs(x = "Trait 2", y = "Trait 1") +
+  theme(legend.position = "none") +
+  scale_color_manual(values = grey.colors(n = length(unique(df$individual)), start = 0.2, end = 0.8))
+
+print(figure1_greyscale)
+
+# save this figure in high DPI for publication 
+# Specify the file path and name
+file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_1_greyscale.tiff"
+
+# Save the combined plot with high DPI
+ggsave(file_path, plot = figure1_greyscale, width = 12, height = 8, dpi = 600)
+
+# figure 2
+# made as individual figures then combined
+# Create a dataframe
+df <- data.frame(
+  category = c("Reduced", "Control", "Enlarged", "Reduced", "Control", "Enlarged"),
+  investment = c(0.95, 1, 1.06, 0.5, 1, 1.5),
+  line = c("a", "a", "a", "b", "b", "b")
+)
+
+# figure 2a
+figure2a <- ggplot(df, aes(x = factor(category, levels = c("Reduced", "Control", "Enlarged")), y = investment, color = line)) +
+  geom_line(aes(group = line), size = 1.2, linetype = ifelse(df$line == "a", "dashed", "solid")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 18, face = "bold"),
+    axis.text.y = element_blank(),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  labs(x = "", y = "Parental Investment") +
+  scale_y_continuous(limits = c(0, 1.7)) +
+  scale_color_manual(values = c("a" = "saddlebrown", "b" = "thistle3")) +
+  theme(legend.position = "none") 
+
+print(figure2a)
+
+# figure 2b
+df <- data.frame(
+  category = c("Reduced", "Control", "Enlarged", "Reduced", "Control", "Enlarged", "Reduced", "Control", "Enlarged"),
+  investment = c(0.95, 1, 1.06, 0.5, 1, 1.15, 0.7, 1, 1.3),
+  line = c("a", "a", "a", "b", "b", "b", "c", "c", "c")
+)
+
+figure2b <- ggplot(df, aes(x = factor(category, levels = c("Reduced", "Control", "Enlarged")), y = investment, color = line)) +
+  geom_line(aes(group = line, linetype = line), size = 1.2) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 18, face = "bold"),
+    axis.text.y = element_blank(),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  labs(x = "", y = "Parental Investment") +
+  scale_y_continuous(limits = c(0, 1.7)) +
+  scale_color_manual(values = c("a" = "saddlebrown", "b" = "thistle3", "c" = "darkslateblue"), guide = "none") +
+  scale_linetype_manual(values = c("a" = "dashed", "b" = "solid", "c" = "dotted"), guide = "none") +
+  labs(y = NULL, x = NULL) 
+
+print(figure2b)
+
+# combine into 2 panel figure 
+figure2_complete <- (figure2a + figure2b) + plot_layout(ncol=2) + plot_annotation(tag_levels = "A")
+figure2_complete
+
+# save this figure in high DPI for publication 
+# Specify the file path and name
+file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_2.tiff"
+
+# Save the combined plot with high DPI
+ggsave(file_path, plot = figure2_complete, width = 18, height = 8, dpi = 600)
+
+# figure 2 greyscale
+df_a <- data.frame(
+  category = c("Reduced", "Control", "Enlarged", "Reduced", "Control", "Enlarged"),
+  investment = c(0.95, 1, 1.06, 0.5, 1, 1.5),
+  line = c("a", "a", "a", "b", "b", "b")
+)
+
+# figure 2a
+figure2a_greyscale <- ggplot(df_a, aes(x = factor(category, levels = c("Reduced", "Control", "Enlarged")), y = investment, color = line)) +
+  geom_line(aes(group = line), size = 1.2, linetype = ifelse(df_a$line == "a", "dashed", "solid")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 18, face = "bold"),
+    axis.text.y = element_blank(),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  labs(x = "", y = "Parental Investment") +
+  scale_y_continuous(limits = c(0, 1.7)) +
+  scale_color_manual(values = c("a" = "grey20", "b" = "grey30", "c" = "grey40"), guide = "none") +
+  theme(legend.position = "none") 
+
+print(figure2a_greyscale)
+
+#figure 2b
+df_b <- data.frame(
+  category = c("Reduced", "Control", "Enlarged", "Reduced", "Control", "Enlarged", "Reduced", "Control", "Enlarged"),
+  investment = c(0.95, 1, 1.06, 0.5, 1, 1.15, 0.7, 1, 1.3),
+  line = c("a", "a", "a", "b", "b", "b", "c", "c", "c")
+)
+
+figure2b_greyscale <- ggplot(df_b, aes(x = factor(category, levels = c("Reduced", "Control", "Enlarged")), y = investment, color = line)) +
+  geom_line(aes(group = line, linetype = line), size = 1.2) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 18, face = "bold"),
+    axis.text.y = element_blank(),
+    axis.title.x = element_text(size = 18, face = "bold"),
+    axis.title.y = element_text(size = 18, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  labs(x = "", y = "Parental Investment") +
+  scale_y_continuous(limits = c(0, 1.7)) +
+  scale_linetype_manual(values = c("a" = "dashed", "b" = "solid", "c" = "dotted"), guide = "none") +
+  scale_color_manual(values = c("a" = "grey20", "b" = "grey30", "c" = "grey40"), guide = "none") +
+  labs(y = NULL, x = NULL) +
+  theme(legend.position = "none") 
+
+
+print(figure2b_greyscale)
+
+# combine into 2 panel figure 
+figure2_complete_greyscale <- (figure2a_greyscale + figure2b_greyscale) + plot_layout(ncol=2) + plot_annotation(tag_levels = "A")
+figure2_complete_greyscale
+
+
+# save this figure in high DPI for publication 
+# Specify the file path and name
+file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_2_greyscale.tiff"
+
+# Save the combined plot with high DPI
+ggsave(file_path, plot = figure2_complete_greyscale, width = 18, height = 8, dpi = 600)
+
 
 ##### Load data -----
 data <- read.csv("G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/PDFs/Extractions 2023.06.26.csv")
 life_hist <- read.csv("G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/PDFs/life_hist_records.csv")
 names(data)
-
+names(life_hist)
 ##### Initial data exploration -----
 
 # one value for each subjectID
@@ -311,12 +524,14 @@ moderators <- c("FocalSpC", "Treatment_stage", "TreatDurCat", "RespCat")
 for (moderator in moderators) {boxplot_effect(moderator)}
 
 
-##### Remaking box plots with flipped ES -----
+##### Flipping ES -----
 # flip ES
 combined_data$G_flip <- combined_data$yi * combined_data$ES_flip
 # we flipped the ES's where appropriate such that a positive value always indicated 
 # change in the direction predicted by theory 
 # for the meta-analyses etc. below I use this flipped ES 
+
+##### Remaking box plots with flipped ES -----
 
 # Create box plots for each moderator but for flipped data 
 boxplot_effect <- function(moderator) {
@@ -328,15 +543,15 @@ boxplot_effect <- function(moderator) {
     geom_boxplot(varwidth=TRUE) +
     scale_fill_manual(values = c("cornflowerblue", "tomato2")) +  # Define colors for each group
     facet_wrap(~ combined_data$Treatment, scales = "fixed") +  # Use the same scale for both panels
-    labs(title = plot_title, x = NULL, y = "Effect Size (G)") +
-    theme_light() +
+    labs(title = NULL, x = NULL, y = "Effect Size (G)") +
+    theme_minimal() +
     guides(fill = FALSE)  # Remove the legend
   
   print(plot_obj)
 }
 
 # List of moderators
-moderators <- c("FocalSpC", "Treatment_stage", "TreatDurCat", "RespCat")
+moderators <- c("FocalSpC", "Treatment_stage", "TreatDurCat", "RespCat", "FocalSpL_corrected")
 
 # Create and display box plots for each moderator
 for (moderator in moderators) {
@@ -384,6 +599,8 @@ cat("Row numbers of flagged 'Anomalous' Treatment rows: ", paste(anomalous_treat
 
 ##### Modifying variables -----
 combined_data$Lifespan_ave_scaled <- scale(combined_data$Lifespan_ave, scale = 2)
+combined_data$Breeding_years_scaled <- scale(combined_data$Breeding_years, scale = 2)
+
 ##### Linking to Tree of Life -----
 
 names(combined_data)
@@ -580,10 +797,14 @@ pruned_tree <- keep.tip(tree_retry, combined_data$FocalSpL_jet)
 length(pruned_tree$tip.label)
 plot(pruned_tree)
 
-#turn into correlation matrix
+# turn into correlation matrix
 corr_jet_tree <- vcv(pruned_tree, corr=T)
 
 ##### Running meta-analyses -----
+
+# notes for readers: 
+# RecNo is StudyID: the RecNo I use is the record number for that paper in my Endnote library 
+# FocalSpL_corrected is Phylo
 
 # ran models of increasing complexity 
 
@@ -650,7 +871,6 @@ model_4b <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID)
                    data = combined_data)
 model_4b
 
-anova(model_4a, model_4b)
 # these are effectively the same 
 # model_4b is slightly better indicating that FocalSpL_corrected should not be retained in future models
 
@@ -664,8 +884,6 @@ model_4c <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_
                    data = combined_data)
 model_4c
 
-anova(model_4a, model_4c)
-# this tells us we shouldnt have phylo in model either
 
 # final check of random effects to include: 
 model_4d <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | FocalSpL_corrected, ~1 | EffectID, ~1 | FocalSpC),
@@ -732,7 +950,7 @@ model_5
 
 # Model with 2 random effects and 'Lifespan_ave' as moderator
 model_6 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
-                  mods = ~ Lifespan_ave,
+                  mods = ~ Breeding_years_scaled-1,
                   test = "t", 
                   method = "REML", 
                   sparse = TRUE, 
@@ -812,6 +1030,31 @@ final_model <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifesp
 final_model
 
 
+# checking if this is different if i use breeding years instead of average lifespan 
+# breeding years is the average lifespan - age at first reproduction 
+final_model_BA <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Breeding_years,
+                      random = list(~1 | RecNo, ~1 | EffectID),
+                      test = "t", 
+                      method = "REML", 
+                      sparse = TRUE, 
+                      data = combined_data)
+final_model_BA
+
+AIC_final <- AIC(final_model)
+AIC_finalBA<- AIC(final_model_BA)
+AIC_final
+AIC_finalBA
+
+# Compare AIC values 
+if (AIC_final < AIC_finalBA) {
+  cat("Final_model is preferred over Model Final_model_BA based on AIC.\n")
+} else {
+  cat("Model Final_model_BA is preferred over Final_model based on AIC.\n")
+}
+
+# Final model BA is preferred - use breeding years instead of average lifespan 
+
+
 # Model with all random effects and moderators for Treatment and the interaction between treatment and lifespan but using scaled lifespan average  
 final_model_b <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Lifespan_ave_scaled, # if add -1 means it shows separate intercepts 
                       random = list(~1 | RecNo, ~1 | EffectID),
@@ -821,7 +1064,30 @@ final_model_b <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Life
                       data = combined_data)
 final_model_b
 # now effect of an increase in 1 SD not 1 year 
-# use this one as final model 
+
+final_model_b_BA <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment-1 + Treatment:Breeding_years_scaled, # if add -1 means it shows separate intercepts 
+                        random = list(~1 | RecNo, ~1 | EffectID),
+                        test = "t", 
+                        method = "REML", 
+                        sparse = TRUE, 
+                        data = combined_data)
+final_model_b_BA
+
+AIC_final_b <- AIC(final_model_b)
+AIC_final_b_BA<- AIC(final_model_b_BA)
+AIC_final_b
+AIC_final_b_BA
+
+# Compare AIC values 
+if (AIC_final_b < AIC_final_b_BA) {
+  cat("Final_model_b is preferred over Model Final_model_b_BA based on AIC.\n")
+} else {
+  cat("Model Final_model_b_BA is preferred over Final_model_b based on AIC.\n")
+}
+
+
+# again final model b BA is best model 
+# use this one as final model - breeding years & scaled 
 
 
 # notes from the above 3 models:
@@ -856,29 +1122,35 @@ final_model_jet_b <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:
 final_model_jet_b
 
 # conclusion:
-# can comfortably just use the tree of life model. same thing. but in either case,not including species and phylo in final models 
+# can comfortably just use the tree of life model. same thing. but in either case, not including species and phylo in final models 
 
+##### Plotting posteriors for important models -----
+forest(final_model_b, slab = combined_data$RecNo, col="steelblue", refline=0)
 
-##### OrchaRd plots 
+forest(final_model_b_BA, slab = combined_data$RecNo, col="steelblue", refline=0)
+
+##### OrchaRd plots -----
 
 #install and load necessary packages 
+
+# only run once:
 #install.packages("pacman")
 #rm(list = ls())
 #devtools::install_github("daniel1noble/orchaRd", ref = "main", force = TRUE)
 #pacman::p_load(devtools, tidyverse, metafor, patchwork, R.rsp, orchaRd, emmeans, ape, phytools, flextable)
 
 
-## created figures following the flow of the github doc by Daniel noble
-# # make plots of models - orchaRd models (Shinichi package): https://daniel1noble.github.io/orchaRd/
+# make plots of models - orchaRd models (Shinichi package): https://daniel1noble.github.io/orchaRd/
+# cite this paper in publication: #Shinichi Nakagawa, Malgorzata Lagisz, Rose E. O’Dea, Patrice Pottier, Joanna Rutkowska, Alistair M. Senior, Yefeng Yang, Daniel W.A. Noble. 2023. orchaRd 2.0: An R package for visualizing meta-analyses with orchard plots. Methods in Ecology and Evolution, https://doi.org/10.1111/2041-210X.14152 (preprint = EcoEvoRxiv, https://doi.org/10.32942/X2QC7).
 
-orchaRd::orchard_plot(final_model_b, mod="1", group = "RecNo", xlab = "Standardised mean difference", 
+orchaRd::orchard_plot(final_model_b_BA, mod="1", group = "RecNo", xlab = "Standardised mean difference", 
                       transfm = "none") 
 
 # use i2_sn function to obtain the total I^2
 
-I2 <- orchaRd::i2_ml(final_model_b)
+I2 <- orchaRd::i2_ml(final_model_b_BA)
 
-model_results <- orchaRd::mod_results(final_model_b, mod = "1", at = NULL,  group = "RecNo")
+model_results <- orchaRd::mod_results(final_model_b_BA, mod = "1", at = NULL,  group = "RecNo")
 model_results
 
 orchaRd::orchard_plot(model_results, mod="1", xlab = "Standardised mean difference") + 
@@ -891,14 +1163,14 @@ orchaRd::orchard_plot(model_results, mod="1", xlab = "Standardised mean differen
 # 95% CIs span the line of no effect 
 
 # doing the same thing but for the other random effect i.e., effectID
-orchaRd::orchard_plot(final_model_b, mod="1", group = "EffectID", xlab = "Standardised mean difference", 
+orchaRd::orchard_plot(final_model_b_BA, mod="1", group = "EffectID", xlab = "Standardised mean difference", 
                       transfm = "none") 
 
 # use i2_sn function to obtain the total I^2
 
-I2 <- orchaRd::i2_ml(final_model_b)
+I2 <- orchaRd::i2_ml(final_model_b_BA)
 
-model_results2 <- orchaRd::mod_results(final_model_b, mod = "1", at = NULL,  group = "EffectID")
+model_results2 <- orchaRd::mod_results(final_model_b_BA, mod = "1", at = NULL,  group = "EffectID")
 model_results2
 
 orchaRd::orchard_plot(model_results2, mod="1", xlab = "Standardised mean difference") + 
@@ -920,11 +1192,11 @@ orchaRd::caterpillars(model_results2, mod="1", xlab = "Standardised mean differe
 
 # adding moderators 
 # Again, we can create a table of results
-res2 <- orchaRd::mod_results(final_model_b, mod = "Treatment", group = "RecNo")
+res2 <- orchaRd::mod_results(final_model_b_BA, mod = "Treatment", group = "RecNo")
 res2
 
 # creating this also for my interaction 
-res2b <- orchaRd::mod_results(final_model_b, mod = "Lifespan_ave_scaled", by = "Treatment", group = "RecNo")
+res2b <- orchaRd::mod_results(final_model_b_BA, mod = "Breeding_years_scaled", by = "Treatment", group = "RecNo")
 res2b
 
 
@@ -942,39 +1214,279 @@ p1b
 
 # bubble plot showing effect of treatment across average lifespan values 
 
-orchaRd::bubble_plot(res2b, group = "RecNo",  mod = "Lifespan_ave_scaled", xlab = "Average Lifespan (Scaled)", legend.pos = "top.left")
-# awesome plot of results, use in puplication 
+orchaRd::bubble_plot(res2b, group = "RecNo",  mod = "Breeding_years_scaled", xlab = "Average Breeding Years (Scaled)", legend.pos = "top.left")
+# awesome plot of results, could use in puplication 
 
 # remaking this using unscaled average lifespan data as it improves reader understanding 
 
 # creating this also for my interaction 
-res2b_unscaled <- orchaRd::mod_results(final_model, mod = "Lifespan_ave", by = "Treatment", group = "RecNo")
+res2b_unscaled <- orchaRd::mod_results(final_model_BA, mod = "Breeding_years", by = "Treatment", group = "RecNo")
 res2b_unscaled
 
-orchaRd::bubble_plot(res2b_unscaled, group = "RecNo",  mod = "Lifespan_ave", xlab = "Average Lifespan", legend.pos = "none")
+figure4 <- orchaRd::bubble_plot(res2b_unscaled, group = "RecNo",  mod = "Breeding_years", xlab = "Average Breeding Years", legend.pos = "none")
+figure4
+# save this figure in high DPI for publication 
+# Specify the file path and name
+file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_4.tiff"
+
+# Save the combined plot with high DPI
+ggsave(file_path, plot = figure4, width = 12, height = 8, dpi = 600)
+
+##### model sensitivity analysis -----
+
+# there are several datapoints which are markedly different from the others 
+# these come from the same paper
+# we ran a sensitivity analysis to see if removing that paper changes results or not '
+
+# create a table with only the 10 highest G_flip values 
+sensitivity_check <- combined_data %>%
+  select(RecNo, Author, G_flip, vi) %>%
+  arrange(desc(G_flip)) %>%
+  head(10)
+
+# only top 3 really stand out 
+# all from paper by Ardia i.e., RecNo 60
+# num 6 is also from the Ardia paper 
+# removing this paper for sensitivity check 
+
+sensitivity_dataset <- combined_data %>%
+  filter(Author != 'Ardia')
+
+# now running the final model with this dataset instead 
+final_model_scaled_sensitivity <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Breeding_years_scaled, # if add -1 means it shows separate intercepts 
+                           random = list(~1 | RecNo, ~1 | EffectID),
+                           test = "t", 
+                           method = "REML", 
+                           sparse = TRUE, 
+                           data = sensitivity_dataset)
+final_model_b_BA
+final_model_scaled_sensitivity
+# does change values, especially for the effect of the interaction between breeding years and the reduced treatment
+# but doesnt change significance of anything 
+
+# checking again with unscaled data 
+final_model_unscaled_sensitivity <- rma.mv(yi = G_flip, V = vi, mods = ~ Treatment + Treatment:Breeding_years,
+                         random = list(~1 | RecNo, ~1 | EffectID),
+                         test = "t", 
+                         method = "REML", 
+                         sparse = TRUE, 
+                         data = sensitivity_dataset)
+final_model_BA
+final_model_unscaled_sensitivity
+# again shows an increase in the effect of the interaction between breeding years and the reduced treatment 
+# but doesnt change significance 
+
+# comparing figures for these 
+
+# first without the paper removed 
+figure4
+
+# with the paper removed 
+res2b_unscaled_sensitivity <- orchaRd::mod_results(final_model_unscaled_sensitivity, mod = "Breeding_years", by = "Treatment", group = "RecNo")
+res2b_unscaled_sensitivity
+
+figure4_sensitivity <- orchaRd::bubble_plot(res2b_unscaled_sensitivity, group = "RecNo",  mod = "Breeding_years", xlab = "Average Breeding Years", legend.pos = "none")
+figure4_sensitivity
+# definitely improves the figure - data less crushed etc. 
+
+# save this figure in high DPI for ESM of publication 
+# Specify the file path and name
+file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/sensitivity_Figure_4.tiff"
+
+# Save the combined plot with high DPI
+ggsave(file_path, plot = figure4_sensitivity, width = 12, height = 8, dpi = 600)
+
+##### Publication bias checks -----
+
+# 1. funnel plots 
+funnel(final_model_b_BA, 
+       yaxis="seinv",
+       type = "rstudent", 
+       ylab = "Precision (inverse of SE)",
+       xlab = "Standardized residuals")
+
+# nicer funnel plot 
+funnel_plot <- funnel(
+  final_model_b_BA,
+  yaxis = "seinv",
+  type = "rstudent",
+  ylab = "Precision (inverse of SE)",
+  xlab = "Standardized residuals",
+  pch = 16,
+  col = "cornflowerblue",
+  ylim = c(0.5, 3)  # Adjust y-axis limits
+)
+
+print(funnel_plot)
+
+# 2. egger tests 
+
+# prepare needed variables 
+combined_data$effectN <- (combined_data$Nnests_control * combined_data$Nnests_treat) / (combined_data$Nnests_control + combined_data$Nnests_treat)
+combined_data$sqeffectN <- sqrt(combined_data$effectN)
+
+# running model same as final model but with sqeffectN as moderator 
+final_model_egger <- rma.mv(yi = G_flip, V = vi, mods = ~ sqeffectN + Treatment + Treatment:Breeding_years_scaled,
+                            random = list(~1 | RecNo, ~1 | EffectID),
+                           test = "t", 
+                           method = "REML", 
+                           sparse = TRUE, 
+                           data = combined_data)
+summary(final_model_egger)
+
+# make orchaRd plot of outcome 
+orchaRd::bubble_plot(final_model_egger,
+            mod = "sqeffectN",
+            group = "RecNo",
+            xlab = "Effective N",
+            g = TRUE)
+
+# checking for decline effect (pub year)
+final_model_egger_year <- rma.mv(yi = G_flip, V = vi, mods = ~ Year + Treatment + Treatment:Breeding_years_scaled,
+                                 random = list(~1 | RecNo, ~1 | EffectID),
+                            test = "t", 
+                            method = "REML", 
+                            sparse = TRUE, 
+                            data = combined_data)
+summary(final_model_egger_year)
+
+# make orchaRd plot of outcome 
+orchaRd::bubble_plot(final_model_egger_year,
+                     mod = "Year",
+                     group = "RecNo",
+                     xlab = "Publication Year",
+                     g = TRUE)
+
+# include both 
+final_model_both <- rma.mv(yi = G_flip, V = vi, mods = ~ Year + sqeffectN + Treatment + Treatment:Breeding_years_scaled,
+                           random = list(~1 | RecNo, ~1 | EffectID),
+                           test = "t", 
+                           method = "REML", 
+                           sparse = TRUE, 
+                           data = combined_data)
+final_model_both
+
+# obtain predicted values and SEs from model 
+dat_fulle <- qdrg(object=final_model_both, 
+                  data=combined_data) # as dataframe
+
+# use created dataframe to calculate marginal means for sqeffect and year
+# weights proportional to levels of treatment (enlarged, reduced)
+res_fulle1 <- emmeans(dat_fulle, 
+                      specs = ~ sqeffectN + Year,
+                      df = final_model_egger$ddf, 
+                      weights = "prop")
+res_fulle1 # estimated marginal means and SEs 
+# in 2007 estimated marginal mean is 2.52 with large SE (14.7) and wide CIs 
+# uncertainty in estimate 
+
+
+# 3. Trim and fill to correct for plot asymmetry 
+
+# found asymmetry in funnel plot so need to correct for this 
+# need to rerun model as rma or uni.rma so using effectN instead of G_flip
+
+resid_test <- rma(yi=effectN, vi=vi, data=combined_data) # works when i use effectN instead of sqEffectN...
+resid_test # print model results to compare to trimfill adjustment below 
+
+# run trimfill analysis 
+trim_results <- trimfill(resid_test)
+trim_results
+# results comparable to resid_test model 
+# i.e. even though seems to be publication bias  even after adjustment no significant changes to results 
+# suggests generally robust results despite potential bias 
+
+
+
+
+
+
 
 ##### To do items: -----
-# subtract the year of first breeding from average lifespan to create new column (breeding years)
-# use breeding years in models and compare to check if different results 
 
-# take out the paper with the very different results and check if it changes the results of the meta-analysis 
+# make nice looking plots for the tree eith colours and the images etc. 
+# - use Shinichi code in Github repo multimodality / R / test.qmd at the end 
+# below is shinichis code:
 
-# rename RecNo as StudyID 
-# run AIC of random effects model (4a) with and without FocalSpL_corrected (name 4c)
-# MuMIn - consider using (multi model inference): https://cran.r-project.org/web/packages/MuMIn/index.html
+slist <- read_excel(here("data", "Species list.xlsx"))
 
-# plot posteriors for important models 
+slist %>% mutate_if(is.character, as.factor) ->slist
 
-# make plots of models - orchaRd models (Shinichi package): https://daniel1noble.github.io/orchaRd/
-#Shinichi Nakagawa, Malgorzata Lagisz, Rose E. O’Dea, Patrice Pottier, Joanna Rutkowska, Alistair M. Senior, Yefeng Yang, Daniel W.A. Noble. 2023. orchaRd 2.0: An R package for visualizing meta-analyses with orchard plots. Methods in Ecology and Evolution, https://doi.org/10.1111/2041-210X.14152 (preprint = EcoEvoRxiv, https://doi.org/10.32942/X2QC7).
 
-# plan results structure while writing the methods section; plan which figures to include and where 
-# dataset, overall, moderator analysis... 
+slist <- as.data.frame(slist)
+slist$Order <- factor(slist$Order, levels = c("Passeriformes", "Falconiformes","Strigiformes",
+                                              "Coraciiformes", "Piciformes", "Accipitriformes",
+                                              "Procellariiformes", "Charadriformes", "Gruiformes",
+                                              "Columbiformes", "Anseriformes", "Galliformes"),
+                      labels =c("Passeriformes", "Falconiformes","Strigiformes",
+                                "Coraciiformes", "Piciformes", "Accipitriformes",
+                                "Procellariiformes", "Charadriformes", "Gruiformes",
+                                "Columbiformes", "Anseriformes", "Galliformes"))
 
-# to do: 
-# step 1: write the methods and results, including making and choosing figures to include 
-# step 2: send to Kim
-# step 3: Kim review 
-# step 4: make edits
-# repeat steps 3-4
-# step 5: send to Losia 
+dat2 <- dat %>% group_by(Spp) %>% 
+  summarise(N_obs = n())
+
+dat2$Spp <- gsub("_", " ",dat2$Spp)
+
+slist$Species_L <- gsub("_", " ", slist$Species_L)
+
+# change tip label
+tree$tip.label <-  gsub("_", " ", tree$tip.label)
+
+match(slist$Species_L, tree$tip.label)
+
+phy_fig1 <- ggtree(tree, branch.length = "branch.length") 
+
+#phy_fig1
+
+phy_fig2 <- phy_fig1 %<+% slist + geom_tiplab(size=2,fontface = "italic") + 
+  geom_tippoint(aes(color= Order)) + 
+  xlim_expand(c(0,120), panel = "Tree")
+#phy_fig2
+
+phy_fig3 <- facet_plot(phy_fig2, panel = 'k (effect sizes)', data = dat2, 
+                       geom = geom_barh, 
+                       mapping = aes(x = N_obs), alpha = 0.7, stat='identity') + 
+  
+  # geom_facet(panel = "Estimates of mean ratio (lnRR)", data = re.spp.lnRR2,
+  #          geom = geom_barh, 
+  #          mapping =  aes(x = N_obs, fill=Family, color=Family), alpha = 0.4, stat='identity') + 
+  
+  guides(fill="none") + 
+  theme_tree2() + theme(strip.background = element_rect(fill = "white")) +
+  theme(legend.position = c(0.07, 0.75)) + 
+  scale_colour_discrete(breaks = c("Passeriformes", "Falconiformes","Strigiformes",
+                                   "Coraciiformes", "Piciformes", "Accipitriformes",
+                                   "Procellariiformes", "Charadriformes", "Gruiformes",
+                                   "Columbiformes", "Anseriformes", "Galliformes")) 
+
+
+phy_fig4 <-  facet_widths(phy_fig3, widths = c(0.7, 0.3))
+
+phy_fig4
+
+# adding incons
+filenames <- list.files("images", pattern=".png", full.names=TRUE)
+ldf <- purrr::map(filenames,~readPNG(.x))
+names(ldf) <- substr(filenames, 8, 60)
+ldf <- purrr::map(ldf, ~image_negate(image_read(.x)))
+#ldf <- map(ldf, ~ image_blank(nrow(.x), ncol(.x), color = "black"))
+#ldf <- lapply(ldf, raster)
+
+# this works but does not knit
+phy_fig5 <- ggdraw(phy_fig4) +
+  draw_image(ldf$Passeriformes.png, y = 0.40, x = -0.33, scale = 0.04) +
+  draw_image(ldf$Falconiformes.png, y = 0.36, x = -0.29, scale = 0.04) +
+  draw_image(ldf$Strigiformes.png, y = 0.33, x = -0.33, scale = 0.04) +
+  draw_image(ldf$Coraciiformes.png, y = 0.29, x = -0.29, scale = 0.04) +
+  draw_image(ldf$Piciformes.png, y = 0.25, x = -0.33, scale = 0.04) +
+  draw_image(ldf$Accipitriformes.png, y = 0.21, x = -0.29, scale = 0.04) +
+  draw_image(ldf$Procellariiformes.png, y = 0.18, x = -0.325, scale = 0.04) +
+  draw_image(ldf$Charadriiformes.png, y = 0.14, x = -0.29, scale = 0.04) +
+  draw_image(ldf$Gruiformes.png, y = 0.11, x = -0.33, scale = 0.04) +
+  draw_image(ldf$Columbiformes.png, y = 0.08, x = -0.29,scale = 0.04) +
+  draw_image(ldf$Anseriformes.png, y = 0.05, x = -0.33, scale = 0.04) +
+  draw_image(ldf$Galliformes.png, y = 0.01, x = -0.29,scale = 0.04) 
+
+#phy_fig5
+
