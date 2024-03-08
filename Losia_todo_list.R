@@ -5,7 +5,6 @@ library(metafor)
 library(forestplot)
 library(tidyr)
 library(ggplot2)
-library(tidyverse)
 library(ape, curl)
 library(rotl)
 library(readxl)
@@ -50,10 +49,10 @@ print(figure1)
 
 # save this figure in high DPI for publication 
 # Specify the file path and name
-file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_1_colour.tiff"
+#file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_1_colour.tiff"
 
 # Save the combined plot with high DPI
-ggsave(file_path, plot = figure1, width = 12, height = 8, dpi = 600)
+#ggsave(file_path, plot = figure1, width = 12, height = 8, dpi = 600)
 
 # same figure in greyscale in case needed for publication 
 figure1_greyscale <- ggplot(df, aes(x = trait_2, y = trait_1, color = individual)) +
@@ -80,10 +79,10 @@ print(figure1_greyscale)
 
 # save this figure in high DPI for publication 
 # Specify the file path and name
-file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_1_greyscale.tiff"
+#file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_1_greyscale.tiff"
 
 # Save the combined plot with high DPI
-ggsave(file_path, plot = figure1_greyscale, width = 12, height = 8, dpi = 600)
+#ggsave(file_path, plot = figure1_greyscale, width = 12, height = 8, dpi = 600)
 
 # figure 2
 # made as individual figures then combined
@@ -149,10 +148,10 @@ figure2_complete
 
 # save this figure in high DPI for publication 
 # Specify the file path and name
-file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_2.tiff"
+#file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_2.tiff"
 
 # Save the combined plot with high DPI
-ggsave(file_path, plot = figure2_complete, width = 18, height = 8, dpi = 600)
+#ggsave(file_path, plot = figure2_complete, width = 18, height = 8, dpi = 600)
 
 # figure 2 greyscale
 df_a <- data.frame(
@@ -219,10 +218,10 @@ figure2_complete_greyscale
 
 # save this figure in high DPI for publication 
 # Specify the file path and name
-file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_2_greyscale.tiff"
+#file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_2_greyscale.tiff"
 
 # Save the combined plot with high DPI
-ggsave(file_path, plot = figure2_complete_greyscale, width = 18, height = 8, dpi = 600)
+#ggsave(file_path, plot = figure2_complete_greyscale, width = 18, height = 8, dpi = 600)
 
 
 ##### Load data -----
@@ -934,7 +933,7 @@ names(combined_data)
 
 # Model with 2 random effects and 'Treatment' as moderator
 model_5 <- rma.mv(yi = G_flip, V = vi, random = list(~1 | RecNo, ~1 | EffectID),
-                  mods = ~ Treatment,
+                  mods = ~ Treatment-1,
                   test = "t", 
                   method = "REML", 
                   sparse = TRUE, 
@@ -1205,6 +1204,12 @@ p1 <- orchaRd::orchard_plot(res2,
                             mod = "Treatment", group = "RecNo", xlab = "Standardised mean difference")
 
 p1 # can likely use this in publication 
+# save this figure in high DPI for publication 
+# Specify the file path and name
+file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/red_enl_fig.tiff"
+
+# Save the combined plot with high DPI
+ggsave(file_path, plot = p1, width = 12, height = 8, dpi = 600)
 
 # caterpillar of same thing 
 p1b <- orchaRd::caterpillars(res2, 
@@ -1227,10 +1232,10 @@ figure4 <- orchaRd::bubble_plot(res2b_unscaled, group = "RecNo",  mod = "Breedin
 figure4
 # save this figure in high DPI for publication 
 # Specify the file path and name
-file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_4.tiff"
+#file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/Figure_4.tiff"
 
 # Save the combined plot with high DPI
-ggsave(file_path, plot = figure4, width = 12, height = 8, dpi = 600)
+#ggsave(file_path, plot = figure4, width = 12, height = 8, dpi = 600)
 
 ##### model sensitivity analysis -----
 
@@ -1291,10 +1296,10 @@ figure4_sensitivity
 
 # save this figure in high DPI for ESM of publication 
 # Specify the file path and name
-file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/sensitivity_Figure_4.tiff"
+#file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/sensitivity_Figure_4.tiff"
 
 # Save the combined plot with high DPI
-ggsave(file_path, plot = figure4_sensitivity, width = 12, height = 8, dpi = 600)
+#ggsave(file_path, plot = figure4_sensitivity, width = 12, height = 8, dpi = 600)
 
 ##### Publication bias checks -----
 
@@ -1318,6 +1323,13 @@ funnel_plot <- funnel(
 )
 
 print(funnel_plot)
+
+# Specify the file path and name
+file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/funnel_plot.tiff"
+
+# Save the combined plot with high DPI
+ggsave(file_path, plot = funnel_plot, width = 12, height = 8, dpi = 600)
+
 
 # 2. egger tests 
 
@@ -1398,8 +1410,75 @@ trim_results
 
 
 
+###
+# Calculate the most and least frequently reported response variables
+most_frequent_responses <- names(sort(table(combined_data$RespCat), decreasing = TRUE))[1:2]
+least_frequent_responses <- names(sort(table(combined_data$RespCat))[1:2])
+
+# Calculate the range of average lifespan and breeding years
+min_lifespan <- min(combined_data$Lifespan_ave, na.rm = TRUE)
+max_lifespan <- max(combined_data$Lifespan_ave, na.rm = TRUE)
+min_breeding_years <- min(combined_data$Breeding_years, na.rm = TRUE)
+max_breeding_years <- max(combined_data$Breeding_years, na.rm = TRUE)
+
+# Fill in the blanks in the sentences
+most_freq_sentence <- paste("The most frequently reported response variables were", 
+                            most_frequent_responses[1], 
+                            "(", length(combined_data$G_flip[combined_data$RespCat == most_frequent_responses[1]]), "estimates) and",
+                            most_frequent_responses[2], 
+                            "(", length(combined_data$G_flip[combined_data$RespCat == most_frequent_responses[2]]), "estimates).", sep = " ")
+
+least_freq_sentence <- paste("The least commonly reported response variables were", 
+                             least_frequent_responses[1], "and", least_frequent_responses[2], 
+                             "(", sum(combined_data$G_flip[combined_data$RespCat == least_frequent_responses[1] | combined_data$RespCat == least_frequent_responses[2]] != "_"), "estimates).", sep = " ")
+
+lifespan_sentence <- paste("The average lifespan of included species ranged from", 
+                           min_lifespan, "for", combined_data$FocalSpL_corrected[which.min(combined_data$Lifespan_ave)], 
+                           "to", max_lifespan, "for", combined_data$FocalSpL_corrected[which.max(combined_data$Lifespan_ave)], ".")
+
+breeding_years_sentence <- paste("The resulting average breeding years ranged from", 
+                                 min_breeding_years, "for", combined_data$FocalSpL_corrected[which.min(combined_data$Breeding_years)], 
+                                 "to", max_breeding_years, "for", combined_data$FocalSpL_corrected[which.max(combined_data$Breeding_years)], ".")
+
+# Print the sentences
+cat(most_freq_sentence, "\n")
+cat(least_freq_sentence, "\n")
+cat(lifespan_sentence, "\n")
+cat(breeding_years_sentence, "\n")
 
 
+
+# Count the number of estimates for VisitRatesPerNestling
+count_visit_rates <- sum(combined_data$G_flip[combined_data$RespCat == "VisitRatesPerNestling"] != "_")
+
+# Print the result
+cat("The number of estimates for VisitRatesPerNestling is:", count_visit_rates, "\n")
+
+
+# Count the number of estimates for LoadSize
+count_load_size <- sum(combined_data$G_flip[combined_data$RespCat == "LoadSize"] != "_")
+
+# Print the result
+cat("The number of estimates for LoadSize is:", count_load_size, "\n")
+
+## alluvial plots
+names(combined_data)
+
+library(ggalluvial)
+library(alluvial)
+
+# Create the alluvial plot
+alluvial_plot <- alluvial(
+  combined_data[, c("Treatment", "Treatment_stage", "TreatDurCat", "Effort_level")],
+  freq = 1, col = ifelse(combined_data$Treatment == "reduced", "red", "blue")
+)
+
+
+# Assuming 'combined_data' is your dataframe
+breeding_years_gt_5 <- sum(combined_data$Breeding_years > 5)
+
+# Print the result
+cat("Number of estimates from species with breeding years greater than 5:", breeding_years_gt_5, "\n")
 
 
 ##### To do items: -----
