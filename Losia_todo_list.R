@@ -1237,7 +1237,7 @@ figure4
 # Save the combined plot with high DPI
 #ggsave(file_path, plot = figure4, width = 12, height = 8, dpi = 600)
 
-##### model sensitivity analysis -----
+##### Model sensitivity analysis -----
 
 # there are several datapoints which are markedly different from the others 
 # these come from the same paper
@@ -1322,7 +1322,7 @@ funnel_plot <- funnel(
   ylim = c(0.5, 3)  # Adjust y-axis limits
 )
 
-print(funnel_plot)
+#print(funnel_plot)
 
 # Specify the file path and name
 file_path <- "G:/.shortcut-targets-by-id/15aIOTzK-SdA0QZzPxWaQk_8cNO0OoEUl/Rebekah thesis/META-ANALYSIS/2021-2023/Drafts/Figures to include in manuscript/funnel_plot.tiff"
@@ -1408,9 +1408,7 @@ trim_results
 # i.e. even though seems to be publication bias  even after adjustment no significant changes to results 
 # suggests generally robust results despite potential bias 
 
-
-
-###
+##### General data checks -----
 # Calculate the most and least frequently reported response variables
 most_frequent_responses <- names(sort(table(combined_data$RespCat), decreasing = TRUE))[1:2]
 least_frequent_responses <- names(sort(table(combined_data$RespCat))[1:2])
@@ -1461,7 +1459,7 @@ count_load_size <- sum(combined_data$G_flip[combined_data$RespCat == "LoadSize"]
 # Print the result
 cat("The number of estimates for LoadSize is:", count_load_size, "\n")
 
-## alluvial plots
+##### alluvial plots -----
 names(combined_data)
 
 library(ggalluvial)
