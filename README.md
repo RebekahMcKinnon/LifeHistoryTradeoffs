@@ -3,9 +3,9 @@
 Github repository for manuscript titled: 'Meta-analysis of brood size manipulation experiments reveals trade-offs between current and future reproduction in birds'
 
 # Co-authors
-Rebekah A. McKinnon
-Sheeraja Sridharan
-Malgorzata (Losia) Lagisz
+Rebekah A. McKinnon,
+Sheeraja Sridharan,
+Malgorzata (Losia) Lagisz, and
 Kimberley J. Mathot
 
 # Research Abstract
