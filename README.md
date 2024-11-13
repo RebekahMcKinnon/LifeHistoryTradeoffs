@@ -5,6 +5,7 @@ Github repository for manuscript titled: 'Meta-analysis of brood size manipulati
 # Co-authors
 Rebekah A. McKinnon,
 Sheeraja Sridharan,
+David Westneat,
 Malgorzata (Losia) Lagisz, and
 Kimberley J. Mathot
 
